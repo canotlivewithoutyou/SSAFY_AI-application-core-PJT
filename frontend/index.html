@@ -5,106 +5,310 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="출발 시각과 실제 차량 이동시간을 고려하는 야간·휴일 병원·약국 방문 플래너"
+      content="도착할 때도 운영하는 병원과 약국을 찾고 방문 계획으로 저장하는 열려있DOC"
     />
-    <title>야간·휴일 방문 플래너</title>
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <title>열려있DOC · 야간·휴일 방문 플래너</title>
+    <link rel="stylesheet" href="./assets/styles.css?v=landing-v5" />
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="처음으로">
-        <span class="brand-mark" aria-hidden="true">+</span>
-        <span>
-          <strong>야간·휴일 방문 플래너</strong>
-          <small>병원과 약국, 도착할 때도 운영하는 곳으로</small>
-        </span>
-      </a>
-      <div id="api-status" class="status status-loading" role="status">
-        서버 확인 중
+      <div class="header-inner">
+        <button class="brand" type="button" data-view="landing" aria-label="열려있DOC 메인 화면">
+          <img class="brand-logo" src="./assets/brand-lockup-transparent-cropped.png" alt="" />
+        </button>
+        <nav class="header-actions" aria-label="주요 메뉴">
+          <button class="header-link" type="button" data-view="landing" data-scroll="landing-story">서비스 소개</button>
+          <button class="header-link" type="button" data-view="plans">방문 계획</button>
+          <button class="header-cta" type="button" data-view="planner">서비스 이용하기</button>
+        </nav>
       </div>
     </header>
 
-    <main id="top" class="page-shell">
-      <section class="hero" aria-labelledby="hero-title">
-        <p class="eyebrow">NIGHT &amp; HOLIDAY VISIT PLANNER</p>
-        <h1 id="hero-title">문을 닫기 전에<br />도착할 수 있는 곳을 찾아요.</h1>
-        <p>
-          출발지와 시각, 병원·약국 종류, 허용 이동시간을 알려 주세요.
-          운영시간과 자동차 경로를 함께 확인하도록 설계했습니다.
-        </p>
+    <main>
+      <section id="landing-view" class="view landing-view" aria-labelledby="landing-title">
+        <section class="landing-hero">
+          <div class="landing-wrap landing-hero-grid">
+            <div class="landing-hero-copy">
+              <h1 id="landing-title">지금 열려 있는 곳보다,<br />도착할 때도 열려 있는 곳.</h1>
+              <p>운영시간과 이동시간을 함께 보고,<br />지금 갈 수 있는 병원·약국을 찾아드려요.</p>
+              <button class="primary-button landing-primary" type="button" data-view="planner">열린 곳 찾아보기</button>
+            </div>
+            <div class="landing-hero-visual">
+              <img
+                class="landing-hero-image"
+                src="./assets/landing-arrival-result-transparent.png"
+                alt="랜턴을 든 도키와 도착 가능 여부, 이동시간, 도착 예상, 운영 종료를 보여주는 화면"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section id="landing-story" class="landing-section landing-timing">
+          <div class="landing-wrap">
+            <h2>도착 시간을 함께 보는 이유.</h2>
+            <div class="story-timeline" aria-label="출발부터 운영 종료까지의 시간 흐름">
+              <div><span></span><strong>출발</strong></div>
+              <div><span></span><strong>이동</strong></div>
+              <div class="arrival-point"><span></span><strong>도착 예상</strong></div>
+              <div class="closing-point"><span></span><strong>운영 종료</strong></div>
+            </div>
+            <p>출발할 때 열려 있어도, 이동하는 동안 문을 닫을 수 있어요.</p>
+          </div>
+        </section>
+
+        <section class="landing-section landing-route">
+          <div class="landing-wrap">
+            <h2>찾는 동안, 도키가 차근차근 확인해요.</h2>
+            <div class="landing-route-media">
+              <img
+                class="landing-route-image"
+                src="./assets/landing-route-banner-transparent-wide.png"
+                alt="출발지에서 자동차 경로와 운영시간을 차례로 확인하는 도키의 안내 과정"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section class="landing-section landing-result-showcase">
+          <div class="landing-wrap result-showcase-grid">
+            <div class="showcase-copy">
+              <h2><span>필요한 정보만</span><span>한눈에.</span></h2>
+            </div>
+            <div class="result-demo" aria-label="추천 결과 화면 예시">
+              <div class="demo-brand"><span class="demo-symbol"></span> 열려있<span>DOC</span></div>
+              <div class="demo-heading">
+                <div><strong>판교 별빛약국</strong><small>경기 성남시 분당구 판교역로</small></div>
+                <span class="preview-available"><i>✓</i> 도착 가능</span>
+              </div>
+              <div class="demo-times">
+                <div><span>예상 주행</span><strong>14분</strong></div>
+                <div><span>도착 예상</span><strong>21:24</strong></div>
+                <div><span>운영 종료</span><strong>23:30</strong></div>
+              </div>
+              <div class="demo-line"><i></i><b></b><span></span></div>
+              <button type="button" data-view="planner">방문 계획 저장</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="landing-section landing-saved">
+          <div class="landing-wrap">
+            <div class="saved-heading">
+              <div>
+                <h2>저장한 계획은 다시 꺼내볼 수 있어요.</h2>
+                <p>출발 시각을 바꾸거나, 일정이 겹치는지도 확인해요.</p>
+              </div>
+              <button class="text-button" type="button" data-view="plans">방문 계획 보기</button>
+            </div>
+            <div class="saved-demo" aria-label="저장한 방문 계획 화면 예시">
+              <div class="saved-date">
+                <div><strong>11월 19일</strong><span>목요일</span></div>
+                <div><strong>11월 20일</strong><span>금요일</span></div>
+              </div>
+              <div class="saved-list">
+                <div class="saved-row expanded">
+                  <div><strong>판교 별빛약국</strong><span>약국</span></div>
+                  <dl><div><dt>출발</dt><dd>21:10</dd></div><div><dt>도착</dt><dd>21:24</dd></div><div><dt>소요</dt><dd>14분</dd></div></dl>
+                </div>
+                <div class="saved-edit"><label>기관명 <span>판교 별빛약국</span></label><label>출발 시각 <span>21:10</span></label><button type="button">수정</button></div>
+                <div class="saved-row">
+                  <div><strong>판교 달빛의원</strong><span>병원</span></div>
+                  <dl><div><dt>출발</dt><dd>21:15</dd></div><div><dt>도착</dt><dd>21:29</dd></div><div><dt>소요</dt><dd>14분</dd></div></dl>
+                </div>
+                <p class="saved-warning"><span>!</span> 같은 날짜에 시간이 겹치는 계획이 있어요.</p>
+                <div class="saved-row saved-row-next">
+                  <div><strong>판교 별빛약국</strong><span>약국</span></div>
+                  <dl><div><dt>출발</dt><dd>21:40</dd></div><div><dt>도착</dt><dd>21:54</dd></div><div><dt>소요</dt><dd>14분</dd></div></dl>
+                </div>
+              </div>
+              <div class="doki doki-card" role="img" aria-label="일정 카드를 든 도키"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="landing-section landing-final">
+          <div class="landing-wrap">
+            <p class="landing-trust">공개 운영정보와 예상 이동시간을 바탕으로 안내해요.</p>
+            <small>실제 운영 및 접수 여부는 방문 전 기관에 확인해 주세요.</small>
+            <div class="landing-final-cta">
+              <h2>도착할 때도 열려 있는 곳,<br />지금 찾아보세요.</h2>
+              <button class="primary-button" type="button" data-view="planner">서비스 이용해보기</button>
+            </div>
+          </div>
+        </section>
+
+        <footer class="landing-footer">
+          <div class="landing-wrap">
+            <img src="./assets/brand-lockup-transparent-cropped.png" alt="열려있DOC" />
+            <p>공개 운영시간과 예상 이동시간을 바탕으로 한 방문 안내입니다.</p>
+          </div>
+        </footer>
       </section>
 
-      <div class="workspace-grid">
-        <section class="panel chat-panel" aria-labelledby="chat-title">
-          <div class="panel-heading">
-            <div>
-              <p class="section-kicker">대화</p>
-              <h2 id="chat-title">방문 조건 입력</h2>
-            </div>
-            <span class="setup-badge">기초 세팅</span>
+      <section id="planner-view" class="view planner-view" aria-labelledby="planner-title" hidden>
+        <div class="planner-column input-column">
+          <div class="intro-copy">
+            <span class="mint-rule" aria-hidden="true"></span>
+            <h1 id="planner-title">지금 출발하면,<br />어디까지 열려 있을까요?</h1>
+            <p class="lead">
+              출발 시각과 자동차 이동시간을 계산해 도착할 때도 운영하는 병원·약국을 찾아드려요.
+            </p>
+            <p class="brand-message">지금 열려 있는 곳보다, 도착할 때도 열려 있는 곳</p>
           </div>
 
-          <div id="messages" class="messages" aria-live="polite">
-            <div class="message assistant-message">
-              <span class="message-label">플래너</span>
-              <p>
-                예: “성남 판교역 신분당선에서 오늘 밤 9시에 출발해 차로
-                20분 안에 갈 약국 찾아줘.”
-              </p>
+          <div class="planner-conversation">
+            <div class="doki doki-planner-input" role="img" aria-label="검색을 안내하는 도키"></div>
+            <div id="messages" class="messages" aria-live="polite">
+              <div class="message assistant-message">
+                <span class="message-label">열려있DOC</span>
+                <p>출발지와 기관 종류, 최대 이동시간을 알려 주세요. 시각을 생략하면 지금 출발로 확인해요.</p>
+              </div>
             </div>
           </div>
 
           <form id="chat-form" class="chat-form">
-            <label for="message">요청</label>
-            <div class="input-row">
-              <textarea
-                id="message"
-                name="message"
-                rows="3"
-                maxlength="4000"
-                required
-                placeholder="출발지, 출발 시각, 기관 종류, 이동시간을 입력하세요"
-              ></textarea>
-              <button id="send-button" type="submit">보내기</button>
+            <label for="message">어디에서 무엇을 찾으시나요?</label>
+            <textarea
+              id="message"
+              name="message"
+              rows="4"
+              maxlength="4000"
+              required
+              placeholder="성남 판교역에서 차로 20분 안에 갈 약국 찾아줘"
+            ></textarea>
+            <div class="form-footer">
+              <button id="send-button" class="primary-button" type="submit">
+                <span class="search-icon" aria-hidden="true"></span> 열린 곳 찾기
+              </button>
             </div>
           </form>
-        </section>
-
-        <aside class="panel setup-panel" aria-labelledby="setup-title">
-          <p class="section-kicker">연결 상태</p>
-          <h2 id="setup-title">오늘의 준비 현황</h2>
-          <ul id="integration-list" class="check-list">
-            <li><span class="check pending">·</span> 서버 정보를 기다리는 중</li>
-          </ul>
-          <p class="setup-note">
-            키 값은 화면이나 로그에 표시하지 않고, 설정 여부만 보여 줍니다.
-          </p>
-          <a class="text-link" href="http://localhost:8000/docs" target="_blank" rel="noreferrer">
-            API 문서 열기 <span aria-hidden="true">↗</span>
-          </a>
-        </aside>
-      </div>
-
-      <section class="panel plans-panel" aria-labelledby="plans-title">
-        <div class="panel-heading">
-          <div>
-            <p class="section-kicker">저장</p>
-            <h2 id="plans-title">방문 계획</h2>
-          </div>
-          <button id="refresh-plans" class="secondary-button" type="button">새로고침</button>
         </div>
-        <div id="plans" class="plans-empty">저장된 방문 계획이 없습니다.</div>
+
+        <div class="planner-column result-column">
+          <div class="result-heading">
+            <div>
+              <h2>도착 예측 미리보기</h2>
+              <p>후보의 이동시간과 운영 종료 시각을 함께 비교해요.</p>
+            </div>
+          </div>
+
+          <section id="progress-panel" class="progress-panel" aria-labelledby="progress-title">
+            <div class="progress-heading">
+              <h3 id="progress-title">탐색 과정</h3>
+              <span id="progress-summary">요청을 입력하면 순서대로 확인합니다.</span>
+            </div>
+            <ol id="progress-steps" class="progress-steps">
+              <li data-step="place"><span>1</span><div><strong>출발지 확인</strong><small>장소와 좌표 확인</small></div></li>
+              <li data-step="nearby"><span>2</span><div><strong>주변 후보 조회</strong><small>병원·약국 후보 탐색</small></div></li>
+              <li data-step="hours"><span>3</span><div><strong>운영시간 확인</strong><small>방문일 운영 구간 확인</small></div></li>
+              <li data-step="route"><span>4</span><div><strong>자동차 경로 계산</strong><small>실제 예상 주행시간 확인</small></div></li>
+              <li data-step="done"><span>5</span><div><strong>추천 완료</strong><small>도착 시점 조건 판단</small></div></li>
+            </ol>
+          </section>
+
+          <section id="empty-result" class="empty-result" aria-live="polite">
+            <div class="range-illustration" aria-hidden="true">
+              <span class="range-ring ring-one"></span>
+              <span class="range-ring ring-two"></span>
+              <span class="range-pin"><i></i></span>
+              <span class="doki doki-result-empty"></span>
+            </div>
+            <strong>검색 결과가 여기에 표시됩니다.</strong>
+            <p>기관명, 주소, 예상 도착, 운영 종료와 선택 근거를 한눈에 확인할 수 있어요.</p>
+          </section>
+
+          <section id="recommendation" class="recommendation" aria-labelledby="recommendation-name" hidden>
+            <div class="recommendation-topline">
+              <p id="recommendation-context"></p>
+              <span class="eligible-state"><span aria-hidden="true">✓</span> 도착 가능</span>
+            </div>
+            <div class="institution-heading">
+              <div>
+                <span id="recommendation-type" class="institution-type"></span>
+                <h3 id="recommendation-name"></h3>
+                <p id="recommendation-address"></p>
+              </div>
+            </div>
+            <div class="time-comparison">
+              <div><span>예상 주행</span><strong id="recommendation-duration">—</strong></div>
+              <div class="arrival-time"><span>예상 도착</span><strong id="recommendation-arrival">—</strong></div>
+              <div><span>운영 종료</span><strong id="recommendation-close">—</strong></div>
+            </div>
+            <div class="timeline" aria-hidden="true"><span></span><i></i><b></b></div>
+            <div class="recommendation-reason">
+              <span aria-hidden="true"></span>
+              <p id="recommendation-reason"></p>
+            </div>
+            <div class="recommendation-actions">
+              <button id="save-plan" class="primary-button wide-button" type="button">방문 계획 저장</button>
+              <button id="focus-search" class="text-button" type="button">조건 바꿔 찾기</button>
+            </div>
+            <div class="doki doki-recommendation" role="img" aria-label="도착 가능 결과를 안내하는 도키"></div>
+          </section>
+
+          <section id="trace-panel" class="trace-panel" aria-labelledby="trace-title" hidden>
+            <button id="trace-toggle" class="trace-toggle" type="button" aria-expanded="false">
+              <span><strong id="trace-title">실행 흐름</strong><small id="trace-summary"></small></span>
+              <span aria-hidden="true">⌄</span>
+            </button>
+            <div id="trace-content" class="trace-content" hidden></div>
+          </section>
+        </div>
       </section>
 
-      <p class="disclaimer">
-        공개 운영시간과 예상 이동시간을 바탕으로 한 방문 안내입니다. 실제 운영 및
-        접수 여부는 방문 전 기관에 확인해 주세요. 이 서비스는 전문가의 의료 상담을
-        대신하지 않습니다.
-      </p>
+      <section id="plans-view" class="view plans-view" aria-labelledby="plans-title" hidden>
+        <div class="plans-heading">
+          <div>
+            <p class="eyebrow">SAVED VISITS</p>
+            <h1 id="plans-title">저장한 방문 계획</h1>
+            <p>방문 전 기관에 실제 운영 및 접수 여부를 확인해 주세요.</p>
+          </div>
+          <div class="plans-heading-actions">
+            <button class="secondary-button" type="button" data-view="planner">새로 찾기</button>
+            <button id="refresh-plans" class="secondary-button" type="button">새로고침</button>
+          </div>
+        </div>
+        <div id="plans" class="plans-empty" aria-live="polite">저장된 방문 계획을 불러오는 중입니다.</div>
+        <div class="doki doki-plans" role="img" aria-label="방문 계획 카드를 든 도키"></div>
+      </section>
     </main>
 
+    <footer id="app-footer" class="site-footer" hidden>
+      <span aria-hidden="true">i</span>
+      <p>공개 운영시간과 예상 이동시간을 바탕으로 한 방문 안내입니다. 실제 운영 및 접수 여부는 방문 전 기관에 확인해 주세요. 이 서비스는 전문가의 의료 상담을 대신하지 않습니다.</p>
+    </footer>
+
+    <dialog id="plan-dialog" class="plan-dialog" aria-labelledby="dialog-title">
+      <form method="dialog" class="dialog-shell">
+        <div class="dialog-heading">
+          <div>
+            <span id="dialog-type" class="institution-type"></span>
+            <h2 id="dialog-title">방문 계획 상세</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="닫기">×</button>
+        </div>
+        <dl id="plan-detail-list" class="plan-detail-list"></dl>
+        <div class="dialog-actions">
+          <button id="edit-plan-toggle" class="secondary-button" type="button">수정</button>
+          <button id="delete-plan" class="danger-button" type="button">삭제</button>
+        </div>
+      </form>
+      <form id="edit-plan-form" class="edit-plan-form" hidden>
+        <h3>계획 수정</h3>
+        <label>기관명 <input id="edit-name" name="institution_name" required maxlength="200" /></label>
+        <label>출발 시각 <input id="edit-departure" name="departure_at" type="datetime-local" required /></label>
+        <label>선택 근거 <textarea id="edit-reason" name="selection_reason" rows="3" required maxlength="1000"></textarea></label>
+        <p>출발 시각을 바꾸면 저장된 주행시간을 기준으로 도착 시각도 함께 조정됩니다.</p>
+        <div class="dialog-actions">
+          <button id="cancel-edit" class="secondary-button" type="button">취소</button>
+          <button class="primary-button" type="submit">변경 저장</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
     <script src="./assets/config.js"></script>
-    <script src="./assets/app.js" defer></script>
+    <script src="./assets/app.js?v=landing-v2" defer></script>
   </body>
 </html>
-
