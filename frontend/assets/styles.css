@@ -346,6 +346,18 @@ textarea:focus, input:focus {
 .trace-list { display: flex; margin: 0; padding: 0; flex-wrap: wrap; gap: 8px; list-style: none; }
 .trace-list li { border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; background: white; font-size: 0.78rem; }
 .replan-note { margin: 12px 0 0; border-left: 4px solid var(--amber); padding: 9px 12px; color: #78410d; background: var(--amber-soft); font-size: 0.86rem; }
+.trace-stages { margin: 0 0 10px; color: var(--muted); font-size: 0.8rem; }
+.trace-timeline { flex-direction: column; flex-wrap: nowrap; }
+.trace-timeline .trace-item { display: grid; gap: 2px; }
+.trace-timeline .trace-item span { color: var(--muted); }
+.trace-item.failed { border-color: var(--coral); background: var(--coral-soft); }
+.trace-item.failed span { color: #b83f37; }
+.trace-item.trace-candidate_excluded { border-left: 4px solid var(--coral); }
+.trace-item.trace-replan { border-left: 4px solid var(--amber); color: #78410d; background: var(--amber-soft); }
+.trace-item.trace-candidate_selected { border-left: 4px solid var(--mint); }
+.trace-item.trace-setup_required { border-left: 4px solid var(--amber); }
+.progress-steps li.complete.recovered > span { border-color: var(--amber); }
+.progress-panel[aria-busy="true"] #progress-summary { color: var(--night); }
 
 .plans-view { position: relative; width: min(100%, 1440px); margin: 0 auto; padding: 54px 42px 175px; }
 .plans-heading { display: flex; padding-bottom: 28px; align-items: end; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--line-strong); }

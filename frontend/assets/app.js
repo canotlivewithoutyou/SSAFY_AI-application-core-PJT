@@ -14,6 +14,7 @@ const elements = {
   form: document.querySelector("#chat-form"),
   message: document.querySelector("#message"),
   send: document.querySelector("#send-button"),
+  progressPanel: document.querySelector("#progress-panel"),
   progressSummary: document.querySelector("#progress-summary"),
   progressSteps: [...document.querySelectorAll("#progress-steps li")],
   emptyResult: document.querySelector("#empty-result"),
@@ -50,7 +51,7 @@ const elements = {
 
 let latestResponse = null;
 let currentPlan = null;
-let progressTimer = null;
+let requestSequence = 0;
 let toastTimer = null;
 
 const toolLabels = {
@@ -176,53 +177,123 @@ function setEmptyResult(title, copy) {
   elements.emptyResult.querySelector("p").textContent = copy;
 }
 
+const stepTools = {
+  place: "search_place",
+  nearby: "search_nearby_institutions",
+  hours: "get_institution_detail",
+  route: "get_driving_route",
+};
+
+const stageLabels = {
+  analyze_request: "요청 분석",
+  build_plan: "실행 계획",
+  execute_tools: "Tool 실행",
+  judge_constraints: "조건 판단",
+  replan: "재계획",
+  generate_response: "응답 생성",
+};
+
+elements.progressSteps.forEach((step) => {
+  const small = step.querySelector("small");
+  if (small) step.dataset.defaultNote = small.textContent;
+});
+
+function setStepNote(step, text) {
+  const small = step.querySelector("small");
+  if (small) small.textContent = text ?? step.dataset.defaultNote ?? "";
+}
+
 function resetProgress() {
-  window.clearInterval(progressTimer);
+  elements.progressPanel?.removeAttribute("aria-busy");
   elements.progressSteps.forEach((step) => {
-    step.classList.remove("active", "complete", "failed");
+    step.classList.remove("active", "complete", "failed", "recovered");
+    setStepNote(step);
   });
 }
 
+// While the request runs we only show a neutral state. Stage completion is
+// rendered afterwards from the events the backend actually recorded.
 function startProgress() {
   resetProgress();
+  elements.progressPanel?.setAttribute("aria-busy", "true");
   elements.recommendation.hidden = true;
   elements.tracePanel.hidden = true;
-  setEmptyResult("요청을 분석하고 있어요.", "기관 후보와 운영시간, 자동차 경로를 순서대로 확인합니다.");
-  let activeIndex = 0;
-  elements.progressSteps[activeIndex].classList.add("active");
-  elements.progressSummary.textContent = "출발 조건을 분석하는 중입니다.";
-  progressTimer = window.setInterval(() => {
-    if (activeIndex >= 3) return;
-    elements.progressSteps[activeIndex].classList.remove("active");
-    elements.progressSteps[activeIndex].classList.add("complete");
-    activeIndex += 1;
-    elements.progressSteps[activeIndex].classList.add("active");
-    elements.progressSummary.textContent = elements.progressSteps[activeIndex].querySelector("strong").textContent + " 중입니다.";
-  }, 900);
+  elements.traceContent.replaceChildren();
+  setEmptyResult("요청을 처리하고 있어요.", "처리가 끝나면 실제로 실행된 단계와 Tool 기록을 보여 드립니다.");
+  elements.progressSummary.textContent = "처리 중입니다. 완료 후 실제 실행 기록으로 단계를 표시합니다.";
 }
 
-function finishProgress(response) {
-  resetProgress();
-  const calls = response.tool_calls ?? [];
-  let completed = 0;
-  if (response.request_context?.origin_longitude != null || calls.some((call) => call.startsWith("search_place"))) completed = 1;
-  if (calls.some((call) => call.startsWith("search_nearby_institutions"))) completed = 2;
-  if (calls.some((call) => call.startsWith("get_institution_detail"))) completed = 3;
-  if (calls.some((call) => call.startsWith("get_driving_route"))) completed = 4;
-  if (response.recommendation) completed = 5;
-  elements.progressSteps.forEach((step, index) => {
-    if (index < completed) step.classList.add("complete");
-  });
-  if (!response.recommendation && response.status === "failed") {
-    elements.progressSteps[Math.min(completed, 4)].classList.add("failed");
-  } else if (!response.recommendation && completed < 5) {
-    elements.progressSteps[completed].classList.add("active");
+async function fetchRunTrace(response) {
+  if (!response.request_id) return null;
+  try {
+    const trace = await api(
+      `/logs/sessions/${encodeURIComponent(response.session_id)}?request_id=${encodeURIComponent(response.request_id)}`,
+    );
+    // Guard against rendering another run's events.
+    if (trace?.request_id !== response.request_id) return null;
+    return trace.summary ?? null;
+  } catch (_) {
+    return null;
   }
-  elements.progressSummary.textContent = response.recommendation
-    ? "도착 시점에도 운영하는 후보를 찾았습니다."
-    : response.status === "needs_input"
-      ? "추가 조건을 기다리고 있습니다."
-      : "확인 결과를 안내했습니다.";
+}
+
+function toolName(name) {
+  return toolLabels[name] ?? name;
+}
+
+function finishProgress(response, summary) {
+  resetProgress();
+  if (!summary) {
+    elements.progressSummary.textContent = "실행 기록을 불러오지 못해 단계 표시를 생략했습니다.";
+    return;
+  }
+  const tools = summary.tools ?? [];
+  elements.progressSteps.forEach((step) => {
+    const key = step.dataset.step;
+    if (key === "done") {
+      if (summary.selected) {
+        step.classList.add("complete");
+        setStepNote(step, "조건 충족 후보 선택");
+      } else if (response.status === "failed") {
+        step.classList.add("failed");
+        setStepNote(step, summary.stop_reason || "후보 확정 실패");
+      }
+      return;
+    }
+    const calls = tools.filter((call) => call.tool === stepTools[key]);
+    if (!calls.length) return; // Not executed in this request.
+    const failures = calls.filter((call) => !call.ok);
+    const succeeded = calls.some((call) => call.ok);
+    const cachedCount = calls.filter((call) => call.cached).length;
+    const calledCount = calls.length - cachedCount;
+    if (succeeded) {
+      step.classList.add("complete");
+      if (failures.length) step.classList.add("recovered");
+      const usage = [calledCount ? `호출 ${calledCount}회` : "", cachedCount ? `캐시 ${cachedCount}회` : ""]
+        .filter(Boolean)
+        .join(" · ");
+      setStepNote(
+        step,
+        failures.length ? `실패 ${failures.length}회 후 성공 · ${usage}` : `성공 · ${usage}`,
+      );
+    } else {
+      step.classList.add("failed");
+      setStepNote(step, `실패: ${failures.at(-1)?.error_message || failures.at(-1)?.error_code || "사유 미제공"}`);
+    }
+  });
+
+  const executed = summary.tool_call_count + summary.cache_hit_count;
+  if (response.status === "setup_required") {
+    elements.progressSummary.textContent = "환경변수 설정이 필요해 Tool을 실행하지 않았습니다.";
+  } else if (executed === 0) {
+    elements.progressSummary.textContent = "Tool 호출 없이 응답했습니다.";
+  } else if (summary.selected) {
+    elements.progressSummary.textContent = "도착 시점에도 운영하는 후보를 찾았습니다.";
+  } else if (response.status === "needs_input") {
+    elements.progressSummary.textContent = "추가 조건을 기다리고 있습니다.";
+  } else {
+    elements.progressSummary.textContent = "확인 결과를 안내했습니다.";
+  }
 }
 
 function recommendationInterval(recommendation) {
@@ -257,30 +328,96 @@ function renderRecommendation(response) {
   elements.recommendation.hidden = false;
 }
 
-function renderTrace(response) {
-  const calls = response.tool_calls ?? [];
-  elements.tracePanel.hidden = calls.length === 0 && !response.replan_count;
-  elements.traceSummary.textContent =
-    `Tool ${calls.length}회${response.replan_count ? ` · 재계획 ${response.replan_count}회` : ""}`;
-  const list = document.createElement("ol");
-  list.className = "trace-list";
-  calls.forEach((raw, index) => {
-    const [name, suffix] = raw.split(":");
-    const item = document.createElement("li");
-    item.textContent = `${index + 1}. ${toolLabels[name] ?? name}${suffix === "cache" ? " (캐시 재사용)" : ""}`;
-    list.append(item);
-  });
-  const children = [list];
-  if (response.replan_count) {
-    const note = document.createElement("p");
-    note.className = "replan-note";
-    const firstReason = response.excluded_candidates?.[0]?.reason;
-    note.textContent = `첫 후보를 제외하고 ${response.replan_count}회 다시 탐색했습니다.${firstReason ? ` 이유: ${firstReason}` : ""}`;
-    children.push(note);
+function traceItem(entry) {
+  const item = document.createElement("li");
+  item.className = `trace-item trace-${entry.kind}`;
+  const title = document.createElement("strong");
+  const detail = document.createElement("span");
+  switch (entry.kind) {
+    case "decision":
+      title.textContent = entry.decision_maker === "llm" ? "LLM 판단" : "규칙 기반 판단";
+      detail.textContent = entry.reason || "";
+      break;
+    case "tool": {
+      const status = entry.cached ? (entry.ok ? "캐시 재사용" : "캐시된 실패") : entry.ok ? "성공" : "실패";
+      if (!entry.ok) item.classList.add("failed");
+      title.textContent = `Tool ${entry.order}. ${toolName(entry.tool)} · ${status}`;
+      const parts = [];
+      if (entry.duration_ms != null) parts.push(`${entry.duration_ms}ms`);
+      if (!entry.ok) parts.push(entry.error_message || entry.error_code || "사유 미제공");
+      detail.textContent = parts.join(" · ");
+      break;
+    }
+    case "candidate_excluded":
+      title.textContent = `후보 제외: ${entry.name || entry.institution_id || "후보"}`;
+      detail.textContent = [entry.reason, entry.stop_reason ? `종료: ${entry.stop_reason}` : ""]
+        .filter(Boolean)
+        .join(" · ");
+      break;
+    case "replan":
+      title.textContent = `재계획 ${entry.replan_count}회차${entry.limit ? ` (상한 ${entry.limit}회)` : ""}`;
+      detail.textContent = "직전 후보를 제외하고 다음 후보를 확인합니다.";
+      break;
+    case "candidate_selected":
+      title.textContent = `후보 선택: ${entry.name || entry.institution_id || "후보"}`;
+      detail.textContent = entry.reason || "";
+      break;
+    case "setup_required":
+      title.textContent = "환경변수 설정 필요";
+      detail.textContent = `${(entry.missing_settings ?? []).join(", ")} 값을 .env에 설정한 뒤 서버를 다시 시작해 주세요.`;
+      break;
+    default:
+      title.textContent = entry.kind;
   }
-  elements.traceContent.replaceChildren(...children);
+  item.append(title);
+  if (detail.textContent) item.append(detail);
+  return item;
+}
+
+function renderTrace(response, summary) {
   elements.traceContent.hidden = true;
   elements.traceToggle.setAttribute("aria-expanded", "false");
+  if (!summary) {
+    // Fallback: show only what the response itself reports, labelled as such.
+    const calls = response.tool_calls ?? [];
+    elements.tracePanel.hidden = calls.length === 0;
+    elements.traceSummary.textContent = `Tool ${calls.length}회 · 실행 로그 조회 실패`;
+    const list = document.createElement("ol");
+    list.className = "trace-list";
+    calls.forEach((raw, index) => {
+      const [name, suffix] = raw.split(":");
+      const item = document.createElement("li");
+      item.textContent = `${index + 1}. ${toolName(name)}${suffix === "cache" ? " (캐시 재사용)" : ""}`;
+      list.append(item);
+    });
+    elements.traceContent.replaceChildren(list);
+    return;
+  }
+
+  const timeline = summary.timeline ?? [];
+  elements.tracePanel.hidden = timeline.length === 0 && (summary.stages ?? []).length === 0;
+  const parts = [`Tool ${summary.tool_call_count}회`];
+  if (summary.cache_hit_count) parts.push(`캐시 ${summary.cache_hit_count}회`);
+  if (summary.failed_tool_count) parts.push(`실패 ${summary.failed_tool_count}회`);
+  if (summary.replan_count) parts.push(`재계획 ${summary.replan_count}회`);
+  if (summary.excluded_count) parts.push(`제외 ${summary.excluded_count}곳`);
+  elements.traceSummary.textContent = parts.join(" · ");
+
+  const children = [];
+  const stages = summary.stages ?? [];
+  if (stages.length) {
+    const stageLine = document.createElement("p");
+    stageLine.className = "trace-stages";
+    stageLine.textContent = "실행 단계: " + stages
+      .map((stage) => `${stageLabels[stage.stage] ?? stage.stage}${stage.status === "completed" ? "" : "(실패)"}`)
+      .join(" → ");
+    children.push(stageLine);
+  }
+  const list = document.createElement("ol");
+  list.className = "trace-list trace-timeline";
+  timeline.forEach((entry) => list.append(traceItem(entry)));
+  children.push(list);
+  elements.traceContent.replaceChildren(...children);
 }
 
 function requiredNumber(value, label) {
@@ -581,28 +718,39 @@ elements.form.addEventListener("submit", async (event) => {
   elements.message.value = "";
   elements.send.disabled = true;
   elements.send.textContent = "확인 중";
+  const sequence = ++requestSequence;
   startProgress();
   try {
     const response = await api("/chat", {
       method: "POST",
       body: JSON.stringify({ session_id: sessionId, message }),
     });
+    const summary = await fetchRunTrace(response);
+    if (sequence !== requestSequence) return; // A newer request owns the screen.
     latestResponse = response;
-    finishProgress(response);
+    finishProgress(response, summary);
     addMessage("assistant", response.answer, { error: response.status === "failed" || response.status === "setup_required" });
-    renderTrace(response);
+    renderTrace(response, summary);
     if (response.recommendation) {
       renderRecommendation(response);
-    } else {
+    } else if (response.status === "setup_required") {
+      const names = (response.missing_settings ?? []).join(", ");
       setEmptyResult(
-        response.status === "needs_input" ? "조건을 조금 더 알려 주세요." : "추천 결과를 확정하지 못했습니다.",
-        response.answer,
+        "환경변수 설정이 필요해요.",
+        `${names || "필요한 환경변수"}를 .env에 설정하고 서버를 다시 시작해 주세요. 키 값은 화면과 로그에 표시하지 않습니다.`,
       );
+    } else {
+      const title = response.status === "needs_input"
+        ? "조건을 조금 더 알려 주세요."
+        : response.status === "completed"
+          ? "안내를 확인해 주세요."
+          : "추천 결과를 확정하지 못했습니다.";
+      setEmptyResult(title, response.answer);
     }
   } catch (error) {
+    if (sequence !== requestSequence) return;
     resetProgress();
-    elements.progressSteps[0].classList.add("failed");
-    elements.progressSummary.textContent = "요청 처리 중 오류가 발생했습니다.";
+    elements.progressSummary.textContent = "요청 처리 중 오류가 발생했습니다. 실행 단계는 확인되지 않았습니다.";
     addMessage("assistant", "요청을 처리하지 못했습니다. 서버 연결을 확인하고 다시 시도해 주세요.", { error: true });
     setEmptyResult("요청을 완료하지 못했습니다.", error.message);
   } finally {
