@@ -14,7 +14,7 @@
 ```
 
 > [!NOTE]
-> 현재 저장소는 기반 MVP 단계입니다. FastAPI, SQLite, 방문 계획 CRUD, 판정 로직, 실행 로그, 기본 화면은 구현되어 있습니다. 추천 Agent와 카카오·국립중앙의료원 API의 실제 호출은 아직 연결 전이며, 추천 요청에 임의의 결과를 반환하지 않습니다.
+> FastAPI, SQLite, 방문 계획 CRUD, 판정 로직, 실행 로그, 기본 화면과 함께 외부 Tool 4종 및 LangGraph 추천 흐름이 구현되어 있습니다. 고정 응답 테스트는 통과했으며, 현재 로컬 `.env`에는 외부 서비스 키가 없어 LLM·카카오·국립중앙의료원 실호출 증빙만 대기 중입니다. 키가 없을 때 추천 요청은 임의 결과를 만들지 않고 `setup_required`를 반환합니다.
 
 > [!IMPORTANT]
 > 공개 운영시간과 예상 이동시간을 바탕으로 한 방문 안내입니다. 실제 운영 및 접수 여부는 방문 전 기관에 확인해 주세요. 이 서비스는 전문가의 의료 상담을 대신하지 않습니다.
@@ -46,12 +46,13 @@ examples/
   fastapi-basics/    # 오전 FastAPI 학습 예제
 backend/
   app/
-    agents/          # LangGraph 상태 계약, 비-LLM 로깅 경계
+    agents/          # LLM 분석, LangGraph 실행 흐름, 대화 Memory, 비-LLM 로깅 경계
     api/             # health, chat, plans, logs 라우터
     repositories/    # SQLite 접근
     schemas/         # 요청·응답 모델
     services/        # 시간 판정 등 순수 도메인 로직
-    tools/           # 외부 Tool 계약과 등록부
+    tools/           # 외부 Tool 계약, 카카오·국립중앙의료원 핸들러, 등록부
+  scripts/           # 키 설정 후 실행하는 실연동 검증 스크립트
   data/              # 로컬 SQLite 파일(버전 관리 제외)
   tests/
 frontend/
@@ -68,12 +69,13 @@ frontend/
 | 방문 계획 관리 | ✅ | 생성·목록·상세·수정·삭제 및 시간 중복 경고 |
 | 실행 로그 관리 | ✅ | 세션별 조회·상세·삭제, 비밀값 형태의 필드 자동 마스킹 |
 | 반응형 웹 화면 | ✅ | 채팅 입력, 연동 상태, 저장된 방문 계획 조회·삭제 |
-| 외부 Tool 계약 | ✅ | 장소 검색, 주변 기관, 기관 상세, 자동차 길찾기 4종 정의 |
-| 카카오·의료기관 API 실연동 | 🚧 | 실제 Tool handler 구현 예정 |
-| LLM 추천 Agent와 자동 재탐색 | 🚧 | Tool 선택과 재계획 그래프 연결 예정 |
+| 외부 Tool 4종 | ✅ | 장소 검색, 주변 기관, `hpid` 상세, 현재·미래 자동차 길찾기 구현 |
+| LangGraph 추천 Agent | ✅ | 분석 → 계획 → 실행 → 판단 → 재계획/응답, 대화 Memory와 결과 캐시 구현 |
+| 카카오·의료기관 실호출 증빙 | ⏳ | 핸들러 구현 완료, 로컬 키 미설정으로 실데이터 기록 대기 |
+| OpenAI 응답·Tool 선택 실증 | ⏳ | 등록 및 모의검증 완료, 로컬 키·모델 미설정으로 실호출 대기 |
 | 추천 결과 저장 UI | 🚧 | Agent 연동 후 구현 예정 |
 
-LLM, 카카오, 국립중앙의료원 API의 **실제 호출 코드는 아직 연결하지 않았습니다.** `/api/v1/meta/tools`의 `implemented: false`가 현재 상태를 그대로 보여 줍니다. 추천 요청도 가짜 결과를 만들지 않고 `setup_required`로 응답합니다. 사용법 질문만 외부 Tool 호출 없이 답합니다.
+`/api/v1/meta/tools`에서 네 Tool의 사용 시점·입출력·실패 코드와 `implemented: true`를 확인할 수 있습니다. `/api/v1/meta/graph`는 실제 LangGraph 구조를 Mermaid로 반환합니다. 사용법 질문은 외부 Tool 없이 답하고, 추천 요청은 네 연동 설정이 모두 있을 때만 실행됩니다.
 
 ## 기술 스택
 
@@ -83,8 +85,8 @@ LLM, 카카오, 국립중앙의료원 API의 **실제 호출 코드는 아직 �
 | Database | SQLite |
 | Frontend | HTML, CSS, Vanilla JavaScript |
 | Test | Python `unittest` |
-| External API | Kakao Local, Kakao Mobility, 국립중앙의료원·공공데이터포털 연동 예정 |
-| Agent | LLM·LangGraph 연동 예정 |
+| External API | Kakao Local, Kakao Mobility, 국립중앙의료원·공공데이터포털 |
+| Agent | LangGraph 1.2.10, LangChain 1.3.14, langchain-openai 1.4.3, OpenAI 2.54.0 |
 
 ## 사용 예시
 
@@ -93,7 +95,7 @@ LLM, 카카오, 국립중앙의료원 API의 **실제 호출 코드는 아직 �
 차로 20분 안에 도착할 수 있는 약국을 찾아줘.
 ```
 
-최종 Agent가 연결되면 기관명·주소, 예상 주행시간과 도착 시각, 방문일의 공개 운영시간, 후보 선택 근거를 함께 안내하는 것을 목표로 합니다. 조건을 만족하는 후보가 없으면 탐색 범위와 제외 사유를 설명합니다.
+연동 키가 설정되면 기관명·주소, 예상 주행시간과 도착 시각, 방문일의 공개 운영시간, 후보 선택 근거를 함께 안내합니다. 조건을 만족하는 후보가 없으면 탐색 범위와 제외 사유를 설명합니다.
 
 ## 로컬 실행
 
@@ -108,7 +110,7 @@ python -m pip install -r backend\requirements.txt
 Copy-Item .env.example .env
 ```
 
-`.env`가 이미 있다면 마지막 명령은 생략합니다. 현재 구현된 API와 화면은 외부 API 키 없이 실행할 수 있습니다.
+`.env`가 이미 있다면 마지막 명령은 생략합니다. 서버·계획·로그·사용법 기능은 외부 API 키 없이 실행할 수 있고, 추천 기능은 키가 없으면 필요한 변수명만 안내합니다.
 
 ### 2. 백엔드 실행
 
@@ -156,7 +158,8 @@ python -m http.server 5500 --directory frontend
 |---|---|---|
 | `GET` | `/api/v1/health` | DB와 외부 연동 설정 여부 확인 |
 | `GET` | `/api/v1/meta/tools` | Tool 계약과 구현 여부 확인 |
-| `POST` | `/api/v1/chat` | 사용법 응답 가능, 추천 Agent 연결 전 |
+| `GET` | `/api/v1/meta/graph` | LangGraph 노드와 조건 분기 구조 확인 |
+| `POST` | `/api/v1/chat` | 사용법 응답 또는 추천 Agent 실행 |
 | `POST/GET` | `/api/v1/plans` | 계획 저장·목록 |
 | `GET/PATCH/DELETE` | `/api/v1/plans/{id}` | 계획 상세·수정·삭제 |
 | `GET` | `/api/v1/logs` | 로그 목록, `session_id` 필터 가능 |
@@ -178,18 +181,32 @@ python -m http.server 5500 --directory frontend
 .\.venv\Scripts\python.exe -m compileall -q backend
 ```
 
-테스트는 도착 시각의 마감 경계, 이동시간 상한, 자정을 넘는 운영 구간, 경로·운영시간 누락, 방문 계획 CRUD와 중복 경고, 로그 비밀값 마스킹, API 계약을 검증합니다.
+테스트는 도착 시각의 마감 경계, 이동시간 상한, 자정을 넘는 운영 구간, 네 Tool의 정상·실패 형식, `hpid → 상세` 연결, 공휴일 시간 누락, 현재·미래 길찾기 선택, 동명 장소 확인, 재계획과 상한, 대화 Memory와 캐시, 방문 계획 CRUD, 로그 마스킹, API 계약을 검증합니다.
+
+## 오전 실연동 검증
+
+`.env`에 네 연동 값을 설정한 뒤 다음 명령을 실행합니다.
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.scripts.verify_morning
+```
+
+스크립트는 다음 증빙을 JSON으로 출력하며 키 원문과 원본 응답은 출력하지 않습니다.
+
+- 일반 요청에 대한 LLM 응답과 “성남 판교역에서 출발할래”의 `search_place` 선택
+- 성남 판교역 좌표와 주변 병·의원 1곳의 기관 ID·좌표·운영시간·적용일
+- 목록의 `hpid`와 상세 응답의 기관 ID 일치 여부
+- 2026-12-25 공휴일 운영시간이 확인되는 기관 또는 `확인 필요` 상태
+- 즉시 출발 자동차 길찾기 결과
+
+현재 저장소의 로컬 `.env`에는 `OPENAI_API_KEY`, `OPENAI_MODEL`, `KAKAO_REST_API_KEY`, `NMC_SERVICE_KEY`가 비어 있으므로 실호출 결과는 아직 기록하지 않았습니다.
 
 ## 로드맵
 
-1. 실제 API 문서의 요청·응답을 기준으로 Tool 4종 handler 구현
-2. 병원 1곳·공휴일 운영 기관 1곳 실호출 검증
-3. 선택한 LLM/Agent 라이브러리의 **과제 지정 버전 확인 후** 의존성 추가
-4. 요청 분석 → 계획 → Tool 실행 → 조건 판정 → 재계획 → 응답 그래프 연결
-5. 추천 결과의 계획 저장 버튼과 계획 수정 화면 연결
-6. 고정 응답 재생과 실호출을 구분해 대표 시나리오 5개 증빙
-
-버전이 문서에 명시되지 않은 LLM/Agent 패키지는 임의 버전으로 고정하지 않았습니다. 과제 명세에서 지정 버전을 확인한 뒤 `backend/requirements.txt`에 추가합니다.
+1. 로컬 키를 설정하고 오전 실연동 검증 결과 기록
+2. 추천 결과의 계획 저장 버튼과 계획 수정 화면 연결
+3. 대표 시나리오 5개를 고정 응답 재생과 실호출로 나눠 증빙
+4. `/docs`, LangGraph 구조, 재계획 로그와 화면 캡처 정리
 
 ## 참고 문서
 
