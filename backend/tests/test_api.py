@@ -46,6 +46,10 @@ class APIContractTests(unittest.TestCase):
 
     def test_routes_chat_logging_and_plan_crud(self) -> None:
         paths = app.openapi()["paths"]
+        self.assertIn(
+            "/app",
+            {route.path for route in app.routes if hasattr(route, "path")},
+        )
         self.assertTrue(
             {
                 "/api/v1/health",

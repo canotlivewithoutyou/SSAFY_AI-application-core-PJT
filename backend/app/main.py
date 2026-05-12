@@ -6,9 +6,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .api import chat, health, logs, plans
-from .config import get_settings
+from .config import PROJECT_ROOT, get_settings
 from .database import initialize_database
 
 
@@ -50,5 +51,13 @@ async def root() -> dict[str, str]:
         "service": settings.app_name,
         "health": f"{settings.api_prefix}/health",
         "docs": "/docs",
+        "app": "/app/",
     }
+
+
+app.mount(
+    "/app",
+    StaticFiles(directory=str(PROJECT_ROOT / "frontend"), html=True),
+    name="frontend",
+)
 

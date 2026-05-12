@@ -119,12 +119,15 @@ python -m uvicorn backend.app.main:app --reload
 ```
 
 - API: <http://localhost:8000>
+- 웹 화면: <http://localhost:8000/app/>
 - Swagger 문서: <http://localhost:8000/docs>
 - 상태 확인: <http://localhost:8000/api/v1/health>
 
 서버는 첫 실행 때 `backend/data/planner.db`를 만듭니다. 이 파일과 `.env`는 Git에 올라가지 않습니다.
 
-### 3. 프론트엔드 실행
+### 3. 프론트엔드 별도 실행 (선택)
+
+기본적으로 FastAPI가 `frontend/`를 `/app/`에서 함께 제공하므로 별도 실행은 필요하지 않습니다. 프론트엔드만 독립적으로 확인할 때 다음 명령을 사용합니다.
 
 다른 PowerShell 창에서 실행합니다.
 
