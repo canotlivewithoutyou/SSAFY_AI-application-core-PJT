@@ -10,6 +10,8 @@ from pathlib import Path
 from backend.app.agents.planner import PlannerAgent
 from backend.app.config import get_settings
 from backend.app.database import initialize_database
+from backend.app.repositories.logs import list_events
+from backend.app.services.chat import build_plan_draft
 from backend.app.tools.contracts import failure, success
 
 
@@ -138,6 +140,34 @@ class PlannerGraphTests(unittest.TestCase):
         self.assertIn("경로 코드 104", result["exclusions"][0]["reason"])
         self.assertIn("제외 후보", result["final_answer"])
         self.assertIn("의료 상담을 대신하지 않습니다", result["final_answer"])
+
+        plan_draft = build_plan_draft(result)
+        self.assertIsNotNone(plan_draft)
+        self.assertEqual(plan_draft.institution_id, "C2")
+        self.assertEqual(plan_draft.travel_duration_seconds, 185)
+
+        events = list_events(self.settings.database_path, session_id="replan-session")
+        entered = [event["stage"] for event in events if event["event_type"] == "stage.entered"]
+        exited = [event["stage"] for event in events if event["event_type"] == "stage.exited"]
+        self.assertCountEqual(entered, exited)
+        self.assertTrue(all(event["duration_ms"] is not None for event in events if event["event_type"] == "stage.exited"))
+
+    def test_missing_departure_defaults_to_current_time_for_representative_flow(self) -> None:
+        registry = FakeRegistry()
+        agent = PlannerAgent(
+            self.settings,
+            registry=registry,
+            analyzer=RuleAnalyzer(),
+            now=lambda: self.now,
+        )
+        result = agent.run(
+            session_id="default-now-session",
+            message="성남 판교역에서 차로 20분 안에 갈 약국 찾아줘",
+        )
+
+        self.assertEqual(result["parsed_request"]["departure_at"], self.now)
+        self.assertTrue(result["parsed_request"]["departure_was_defaulted"])
+        self.assertEqual(result["selected_candidate"]["institution_id"], "C2")
 
     def test_follow_up_keeps_origin_and_reuses_non_route_results(self) -> None:
         registry = FakeRegistry()

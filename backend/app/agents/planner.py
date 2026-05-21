@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
+from functools import wraps
 from functools import lru_cache
 from time import perf_counter
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
@@ -118,12 +119,24 @@ class PlannerAgent:
             self.analyzer = OpenAIAnalyzer(settings)
 
         graph = StateGraph(PlannerState)
-        graph.add_node("analyze_request", self._analyze_request)
-        graph.add_node("build_plan", self._build_plan)
-        graph.add_node("execute_tools", self._execute_tools)
-        graph.add_node("judge_constraints", self._judge_constraints)
-        graph.add_node("replan", self._replan)
-        graph.add_node("generate_response", self._generate_response)
+        graph.add_node(
+            "analyze_request",
+            self._stage_node("analyze_request", self._analyze_request),
+        )
+        graph.add_node("build_plan", self._stage_node("build_plan", self._build_plan))
+        graph.add_node(
+            "execute_tools",
+            self._stage_node("execute_tools", self._execute_tools),
+        )
+        graph.add_node(
+            "judge_constraints",
+            self._stage_node("judge_constraints", self._judge_constraints),
+        )
+        graph.add_node("replan", self._stage_node("replan", self._replan))
+        graph.add_node(
+            "generate_response",
+            self._stage_node("generate_response", self._generate_response),
+        )
         graph.add_edge(START, "analyze_request")
         graph.add_edge("analyze_request", "build_plan")
         graph.add_edge("build_plan", "execute_tools")
@@ -155,8 +168,40 @@ class PlannerAgent:
             duration_ms=duration_ms,
         )
 
+    def _stage_node(
+        self,
+        stage: str,
+        handler: Callable[[PlannerState], dict[str, Any]],
+    ) -> Callable[[PlannerState], dict[str, Any]]:
+        """Wrap a graph node with balanced enter/exit events and elapsed time."""
+
+        @wraps(handler)
+        def wrapped(state: PlannerState) -> dict[str, Any]:
+            self._log(state, event_type="stage.entered", stage=stage)
+            started = perf_counter()
+            try:
+                update = handler(state)
+            except Exception as error:
+                self._log(
+                    state,
+                    event_type="stage.exited",
+                    stage=stage,
+                    payload={"status": "failed", "error_type": type(error).__name__},
+                    duration_ms=int((perf_counter() - started) * 1000),
+                )
+                raise
+            self._log(
+                state,
+                event_type="stage.exited",
+                stage=stage,
+                payload={"status": "completed"},
+                duration_ms=int((perf_counter() - started) * 1000),
+            )
+            return update
+
+        return wrapped
+
     def _analyze_request(self, state: PlannerState) -> dict[str, Any]:
-        self._log(state, event_type="stage.entered", stage="analyze_request")
         message = str(state.get("user_message") or "").strip()
         previous = dict(state.get("parsed_request") or {})
         current = self.now().astimezone(SEOUL)
@@ -184,6 +229,23 @@ class PlannerAgent:
             now=current,
         )
         merged.update(explicit)
+
+        # The representative browser flow intentionally omits a departure time.
+        # When all other visit constraints are explicit, "갈 곳 찾아줘" means a
+        # current-departure search; keep the choice deterministic and observable.
+        if (
+            merged.get("departure_at") is None
+            and merged.get("origin_query")
+            and merged.get("institution_type")
+            and merged.get("max_travel_seconds") is not None
+        ):
+            merged["departure_at"] = current.replace(microsecond=0)
+            merged["departure_was_defaulted"] = True
+            analysis_reason = (
+                f"{analysis_reason} 출발 시각이 없어 현재 시각을 기본값으로 적용했습니다."
+            )
+        elif "departure_at" in explicit:
+            merged["departure_was_defaulted"] = False
 
         previous_origin = previous.get("origin_query")
         next_origin = merged.get("origin_query")
@@ -238,7 +300,6 @@ class PlannerAgent:
         return update
 
     def _build_plan(self, state: PlannerState) -> dict[str, Any]:
-        self._log(state, event_type="stage.entered", stage="build_plan")
         request = state.get("parsed_request") or {}
         missing = _missing_fields(request)
         plan: list[str] = []
@@ -309,7 +370,6 @@ class PlannerAgent:
         return result
 
     def _execute_tools(self, state: PlannerState) -> dict[str, Any]:
-        self._log(state, event_type="stage.entered", stage="execute_tools")
         request = dict(state.get("parsed_request") or {})
         cache = dict(state.get("tool_cache") or {})
         calls = list(state.get("tool_calls") or [])
@@ -502,7 +562,6 @@ class PlannerAgent:
         return int((active.end - departure).total_seconds()) if active else None
 
     def _judge_constraints(self, state: PlannerState) -> dict[str, Any]:
-        self._log(state, event_type="stage.entered", stage="judge_constraints")
         if state.get("clarification") or state.get("stop_reason"):
             return {"needs_replan": False}
         candidate = state.get("current_candidate") or {}
@@ -636,7 +695,6 @@ class PlannerAgent:
         }
 
     def _generate_response(self, state: PlannerState) -> dict[str, Any]:
-        self._log(state, event_type="stage.entered", stage="generate_response")
         if state.get("clarification"):
             answer = str(state["clarification"])
         elif state.get("selected_candidate"):

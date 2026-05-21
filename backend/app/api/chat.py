@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from time import perf_counter
+
 from fastapi import APIRouter, Depends
 
 from ..agents.logging_agent import emit_safely
@@ -25,6 +27,7 @@ async def chat(
         stage="chat",
         payload={"message_length": len(request.message)},
     )
+    started = perf_counter()
     response = handle_chat(request, settings)
     emit_safely(
         settings.database_path,
@@ -32,6 +35,7 @@ async def chat(
         event_type="request.completed",
         stage="chat",
         payload={"status": response.status, "tool_calls": response.tool_calls},
+        duration_ms=int((perf_counter() - started) * 1000),
     )
     return response
 

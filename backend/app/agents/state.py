@@ -12,6 +12,7 @@ class PlannerRequest(TypedDict, total=False):
     origin_latitude: float
     institution_type: Literal["hospital", "pharmacy"]
     departure_at: datetime
+    departure_was_defaulted: bool
     max_travel_seconds: int
     is_public_holiday: bool
 
