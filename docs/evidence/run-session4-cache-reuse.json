@@ -1,0 +1,1082 @@
+{
+  "session_id": "4",
+  "request_id": "7a576636247249149943f521abb336b2",
+  "latest_request_id": "7a576636247249149943f521abb336b2",
+  "requests": [
+    {
+      "request_id": "32672a87ac894cf49db68a319d4aa27f",
+      "event_count": 60,
+      "started_at": "2026-11-20T02:10:55.763000Z",
+      "ended_at": "2026-11-20T02:11:01.391000Z",
+      "duration_ms": 5628
+    },
+    {
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_count": 48,
+      "started_at": "2026-11-20T02:17:32.756000Z",
+      "ended_at": "2026-11-20T02:17:34.998000Z",
+      "duration_ms": 2242
+    }
+  ],
+  "events": [
+    {
+      "id": 482,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "request.received",
+      "stage": "chat",
+      "payload": {
+        "message_length": 44
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:32.756000Z"
+    },
+    {
+      "id": 483,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "analyze_request",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:32.768000Z"
+    },
+    {
+      "id": 484,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "llm.decision",
+      "stage": "analyze_request",
+      "payload": {
+        "decision_maker": "llm",
+        "source": "llm+rules",
+        "reason": "User specified a new departure time and travel limit for the pharmacy visit.",
+        "extracted_fields": [
+          "departure_at",
+          "departure_was_defaulted",
+          "institution_type",
+          "max_travel_seconds",
+          "origin_address",
+          "origin_latitude",
+          "origin_longitude",
+          "origin_name",
+          "origin_place_id",
+          "origin_query"
+        ]
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.752000Z"
+    },
+    {
+      "id": 485,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "analyze_request",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 1984,
+      "created_at": "2026-11-20T02:17:34.757000Z"
+    },
+    {
+      "id": 486,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "build_plan",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.763000Z"
+    },
+    {
+      "id": 487,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "plan.created",
+      "stage": "build_plan",
+      "payload": {
+        "steps": [
+          "search_nearby_institutions",
+          "get_institution_detail",
+          "get_driving_route",
+          "evaluate_visit"
+        ],
+        "missing_fields": []
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.767000Z"
+    },
+    {
+      "id": 488,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "build_plan",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 6,
+      "created_at": "2026-11-20T02:17:34.774000Z"
+    },
+    {
+      "id": 489,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "execute_tools",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.784000Z"
+    },
+    {
+      "id": 490,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "tool.cache_hit",
+      "stage": "execute_tools",
+      "payload": {
+        "tool": "get_institution_detail",
+        "arguments": {
+          "institution_id": "C2107747",
+          "institution_type": "pharmacy",
+          "visit_date": "2026-11-20"
+        },
+        "ok": true,
+        "attempt": 0
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.790000Z"
+    },
+    {
+      "id": 491,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "tool.cache_hit",
+      "stage": "execute_tools",
+      "payload": {
+        "tool": "get_driving_route",
+        "arguments": {
+          "origin": {
+            "longitude": 127.11119782955879,
+            "latitude": 37.39477752734142
+          },
+          "destination": {
+            "longitude": 127.11036477013562,
+            "latitude": 37.39426202230159
+          },
+          "departure_at": "2026-11-20T21:00:00+09:00"
+        },
+        "ok": true,
+        "attempt": 0
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.796000Z"
+    },
+    {
+      "id": 492,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "execute_tools",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 10,
+      "created_at": "2026-11-20T02:17:34.801000Z"
+    },
+    {
+      "id": 493,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "judge_constraints",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.806000Z"
+    },
+    {
+      "id": 494,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "candidate.excluded",
+      "stage": "judge_constraints",
+      "payload": {
+        "institution_id": "C2107747",
+        "name": "시티약국",
+        "code": "outside_operating_hours",
+        "reason": "예상 도착 시각이 확인된 운영 구간 밖입니다.",
+        "attempt": 0,
+        "will_replan": true,
+        "stop_reason": null
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.812000Z"
+    },
+    {
+      "id": 495,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "judge_constraints",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 6,
+      "created_at": "2026-11-20T02:17:34.819000Z"
+    },
+    {
+      "id": 496,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "replan",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.825000Z"
+    },
+    {
+      "id": 497,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "plan.replanned",
+      "stage": "replan",
+      "payload": {
+        "replan_count": 1,
+        "limit": 5,
+        "reason": "예상 도착 시각이 확인된 운영 구간 밖입니다.",
+        "visited_institution_ids": [
+          "C2107747"
+        ]
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.831000Z"
+    },
+    {
+      "id": 498,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "replan",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 4,
+      "created_at": "2026-11-20T02:17:34.836000Z"
+    },
+    {
+      "id": 499,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "execute_tools",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.842000Z"
+    },
+    {
+      "id": 500,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "tool.cache_hit",
+      "stage": "execute_tools",
+      "payload": {
+        "tool": "get_institution_detail",
+        "arguments": {
+          "institution_id": "C2107825",
+          "institution_type": "pharmacy",
+          "visit_date": "2026-11-20"
+        },
+        "ok": true,
+        "attempt": 1
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.848000Z"
+    },
+    {
+      "id": 501,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "tool.cache_hit",
+      "stage": "execute_tools",
+      "payload": {
+        "tool": "get_driving_route",
+        "arguments": {
+          "origin": {
+            "longitude": 127.11119782955879,
+            "latitude": 37.39477752734142
+          },
+          "destination": {
+            "longitude": 127.11203161683156,
+            "latitude": 37.394256850756186
+          },
+          "departure_at": "2026-11-20T21:00:00+09:00"
+        },
+        "ok": false,
+        "attempt": 1
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.853000Z"
+    },
+    {
+      "id": 502,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "execute_tools",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 9,
+      "created_at": "2026-11-20T02:17:34.858000Z"
+    },
+    {
+      "id": 503,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "judge_constraints",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.864000Z"
+    },
+    {
+      "id": 504,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "candidate.excluded",
+      "stage": "judge_constraints",
+      "payload": {
+        "institution_id": "C2107825",
+        "name": "판교365약국",
+        "code": "route_unavailable",
+        "reason": "출발 시각 기준 마감까지 60분 남았지만 차량 경로를 확인할 수 없습니다 (경로 코드 104).",
+        "attempt": 1,
+        "will_replan": true,
+        "stop_reason": null
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.869000Z"
+    },
+    {
+      "id": 505,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "judge_constraints",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 4,
+      "created_at": "2026-11-20T02:17:34.873000Z"
+    },
+    {
+      "id": 506,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "replan",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.879000Z"
+    },
+    {
+      "id": 507,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "plan.replanned",
+      "stage": "replan",
+      "payload": {
+        "replan_count": 2,
+        "limit": 5,
+        "reason": "출발 시각 기준 마감까지 60분 남았지만 차량 경로를 확인할 수 없습니다 (경로 코드 104).",
+        "visited_institution_ids": [
+          "C2107747",
+          "C2107825"
+        ]
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.884000Z"
+    },
+    {
+      "id": 508,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "replan",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 4,
+      "created_at": "2026-11-20T02:17:34.889000Z"
+    },
+    {
+      "id": 509,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "execute_tools",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.896000Z"
+    },
+    {
+      "id": 510,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "tool.cache_hit",
+      "stage": "execute_tools",
+      "payload": {
+        "tool": "get_institution_detail",
+        "arguments": {
+          "institution_id": "C2108981",
+          "institution_type": "pharmacy",
+          "visit_date": "2026-11-20"
+        },
+        "ok": true,
+        "attempt": 2
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.902000Z"
+    },
+    {
+      "id": 511,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "tool.cache_hit",
+      "stage": "execute_tools",
+      "payload": {
+        "tool": "get_driving_route",
+        "arguments": {
+          "origin": {
+            "longitude": 127.11119782955879,
+            "latitude": 37.39477752734142
+          },
+          "destination": {
+            "longitude": 127.112113596734,
+            "latitude": 37.3954648629951
+          },
+          "departure_at": "2026-11-20T21:00:00+09:00"
+        },
+        "ok": true,
+        "attempt": 2
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.907000Z"
+    },
+    {
+      "id": 512,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "execute_tools",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 9,
+      "created_at": "2026-11-20T02:17:34.911000Z"
+    },
+    {
+      "id": 513,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "judge_constraints",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.916000Z"
+    },
+    {
+      "id": 514,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "candidate.excluded",
+      "stage": "judge_constraints",
+      "payload": {
+        "institution_id": "C2108981",
+        "name": "휴베이스알파약국",
+        "code": "outside_operating_hours",
+        "reason": "예상 도착 시각이 확인된 운영 구간 밖입니다.",
+        "attempt": 2,
+        "will_replan": true,
+        "stop_reason": null
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.921000Z"
+    },
+    {
+      "id": 515,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "judge_constraints",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 4,
+      "created_at": "2026-11-20T02:17:34.925000Z"
+    },
+    {
+      "id": 516,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "replan",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.931000Z"
+    },
+    {
+      "id": 517,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "plan.replanned",
+      "stage": "replan",
+      "payload": {
+        "replan_count": 3,
+        "limit": 5,
+        "reason": "예상 도착 시각이 확인된 운영 구간 밖입니다.",
+        "visited_institution_ids": [
+          "C2107747",
+          "C2107825",
+          "C2108981"
+        ]
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.936000Z"
+    },
+    {
+      "id": 518,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "replan",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 4,
+      "created_at": "2026-11-20T02:17:34.940000Z"
+    },
+    {
+      "id": 519,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "execute_tools",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.946000Z"
+    },
+    {
+      "id": 520,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "tool.cache_hit",
+      "stage": "execute_tools",
+      "payload": {
+        "tool": "get_institution_detail",
+        "arguments": {
+          "institution_id": "C2103515",
+          "institution_type": "pharmacy",
+          "visit_date": "2026-11-20"
+        },
+        "ok": true,
+        "attempt": 3
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.951000Z"
+    },
+    {
+      "id": 521,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "tool.cache_hit",
+      "stage": "execute_tools",
+      "payload": {
+        "tool": "get_driving_route",
+        "arguments": {
+          "origin": {
+            "longitude": 127.11119782955879,
+            "latitude": 37.39477752734142
+          },
+          "destination": {
+            "longitude": 127.11170343031807,
+            "latitude": 37.396408899851544
+          },
+          "departure_at": "2026-11-20T21:00:00+09:00"
+        },
+        "ok": true,
+        "attempt": 3
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.956000Z"
+    },
+    {
+      "id": 522,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "execute_tools",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 10,
+      "created_at": "2026-11-20T02:17:34.961000Z"
+    },
+    {
+      "id": 523,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "judge_constraints",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.967000Z"
+    },
+    {
+      "id": 524,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "candidate.selected",
+      "stage": "judge_constraints",
+      "payload": {
+        "institution_id": "C2103515",
+        "name": "다낫는럭스타워약국",
+        "code": "selected",
+        "reason": "이동시간 상한 이내이며 운영 종료 전에 도착할 것으로 예상됩니다.",
+        "attempt": 3
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.971000Z"
+    },
+    {
+      "id": 525,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "judge_constraints",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 4,
+      "created_at": "2026-11-20T02:17:34.976000Z"
+    },
+    {
+      "id": 526,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.entered",
+      "stage": "generate_response",
+      "payload": {},
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.981000Z"
+    },
+    {
+      "id": 527,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "response.generated",
+      "stage": "generate_response",
+      "payload": {
+        "selected": true,
+        "needs_input": false,
+        "replan_count": 3,
+        "stop_reason": null
+      },
+      "duration_ms": null,
+      "created_at": "2026-11-20T02:17:34.986000Z"
+    },
+    {
+      "id": 528,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "stage.exited",
+      "stage": "generate_response",
+      "payload": {
+        "status": "completed"
+      },
+      "duration_ms": 4,
+      "created_at": "2026-11-20T02:17:34.991000Z"
+    },
+    {
+      "id": 529,
+      "session_id": "4",
+      "request_id": "7a576636247249149943f521abb336b2",
+      "event_type": "request.completed",
+      "stage": "chat",
+      "payload": {
+        "status": "completed",
+        "tool_calls": [
+          "get_institution_detail:cache",
+          "get_driving_route:cache",
+          "get_institution_detail:cache",
+          "get_driving_route:cache",
+          "get_institution_detail:cache",
+          "get_driving_route:cache",
+          "get_institution_detail:cache",
+          "get_driving_route:cache"
+        ],
+        "tool_call_count": 8,
+        "replan_count": 3
+      },
+      "duration_ms": 2232,
+      "created_at": "2026-11-20T02:17:34.998000Z"
+    }
+  ],
+  "summary": {
+    "status": "completed",
+    "completed": true,
+    "decision": {
+      "decision_maker": "llm",
+      "source": "llm+rules",
+      "reason": "User specified a new departure time and travel limit for the pharmacy visit."
+    },
+    "stages": [
+      {
+        "stage": "analyze_request",
+        "status": "completed",
+        "duration_ms": 1984
+      },
+      {
+        "stage": "build_plan",
+        "status": "completed",
+        "duration_ms": 6
+      },
+      {
+        "stage": "execute_tools",
+        "status": "completed",
+        "duration_ms": 10
+      },
+      {
+        "stage": "judge_constraints",
+        "status": "completed",
+        "duration_ms": 6
+      },
+      {
+        "stage": "replan",
+        "status": "completed",
+        "duration_ms": 4
+      },
+      {
+        "stage": "execute_tools",
+        "status": "completed",
+        "duration_ms": 9
+      },
+      {
+        "stage": "judge_constraints",
+        "status": "completed",
+        "duration_ms": 4
+      },
+      {
+        "stage": "replan",
+        "status": "completed",
+        "duration_ms": 4
+      },
+      {
+        "stage": "execute_tools",
+        "status": "completed",
+        "duration_ms": 9
+      },
+      {
+        "stage": "judge_constraints",
+        "status": "completed",
+        "duration_ms": 4
+      },
+      {
+        "stage": "replan",
+        "status": "completed",
+        "duration_ms": 4
+      },
+      {
+        "stage": "execute_tools",
+        "status": "completed",
+        "duration_ms": 10
+      },
+      {
+        "stage": "judge_constraints",
+        "status": "completed",
+        "duration_ms": 4
+      },
+      {
+        "stage": "generate_response",
+        "status": "completed",
+        "duration_ms": 4
+      }
+    ],
+    "tools": [
+      {
+        "order": 1,
+        "tool": "get_institution_detail",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 0
+      },
+      {
+        "order": 2,
+        "tool": "get_driving_route",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 0
+      },
+      {
+        "order": 3,
+        "tool": "get_institution_detail",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 1
+      },
+      {
+        "order": 4,
+        "tool": "get_driving_route",
+        "cached": true,
+        "ok": false,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 1
+      },
+      {
+        "order": 5,
+        "tool": "get_institution_detail",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 2
+      },
+      {
+        "order": 6,
+        "tool": "get_driving_route",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 2
+      },
+      {
+        "order": 7,
+        "tool": "get_institution_detail",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 3
+      },
+      {
+        "order": 8,
+        "tool": "get_driving_route",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 3
+      }
+    ],
+    "timeline": [
+      {
+        "event_id": 484,
+        "stage": "analyze_request",
+        "kind": "decision",
+        "decision_maker": "llm",
+        "source": "llm+rules",
+        "reason": "User specified a new departure time and travel limit for the pharmacy visit."
+      },
+      {
+        "event_id": 490,
+        "stage": "execute_tools",
+        "kind": "tool",
+        "order": 1,
+        "tool": "get_institution_detail",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 0
+      },
+      {
+        "event_id": 491,
+        "stage": "execute_tools",
+        "kind": "tool",
+        "order": 2,
+        "tool": "get_driving_route",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 0
+      },
+      {
+        "event_id": 494,
+        "stage": "judge_constraints",
+        "kind": "candidate_excluded",
+        "institution_id": "C2107747",
+        "name": "시티약국",
+        "code": "outside_operating_hours",
+        "reason": "예상 도착 시각이 확인된 운영 구간 밖입니다.",
+        "will_replan": true,
+        "stop_reason": null
+      },
+      {
+        "event_id": 497,
+        "stage": "replan",
+        "kind": "replan",
+        "replan_count": 1,
+        "limit": 5,
+        "reason": "예상 도착 시각이 확인된 운영 구간 밖입니다."
+      },
+      {
+        "event_id": 500,
+        "stage": "execute_tools",
+        "kind": "tool",
+        "order": 3,
+        "tool": "get_institution_detail",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 1
+      },
+      {
+        "event_id": 501,
+        "stage": "execute_tools",
+        "kind": "tool",
+        "order": 4,
+        "tool": "get_driving_route",
+        "cached": true,
+        "ok": false,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 1
+      },
+      {
+        "event_id": 504,
+        "stage": "judge_constraints",
+        "kind": "candidate_excluded",
+        "institution_id": "C2107825",
+        "name": "판교365약국",
+        "code": "route_unavailable",
+        "reason": "출발 시각 기준 마감까지 60분 남았지만 차량 경로를 확인할 수 없습니다 (경로 코드 104).",
+        "will_replan": true,
+        "stop_reason": null
+      },
+      {
+        "event_id": 507,
+        "stage": "replan",
+        "kind": "replan",
+        "replan_count": 2,
+        "limit": 5,
+        "reason": "출발 시각 기준 마감까지 60분 남았지만 차량 경로를 확인할 수 없습니다 (경로 코드 104)."
+      },
+      {
+        "event_id": 510,
+        "stage": "execute_tools",
+        "kind": "tool",
+        "order": 5,
+        "tool": "get_institution_detail",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 2
+      },
+      {
+        "event_id": 511,
+        "stage": "execute_tools",
+        "kind": "tool",
+        "order": 6,
+        "tool": "get_driving_route",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 2
+      },
+      {
+        "event_id": 514,
+        "stage": "judge_constraints",
+        "kind": "candidate_excluded",
+        "institution_id": "C2108981",
+        "name": "휴베이스알파약국",
+        "code": "outside_operating_hours",
+        "reason": "예상 도착 시각이 확인된 운영 구간 밖입니다.",
+        "will_replan": true,
+        "stop_reason": null
+      },
+      {
+        "event_id": 517,
+        "stage": "replan",
+        "kind": "replan",
+        "replan_count": 3,
+        "limit": 5,
+        "reason": "예상 도착 시각이 확인된 운영 구간 밖입니다."
+      },
+      {
+        "event_id": 520,
+        "stage": "execute_tools",
+        "kind": "tool",
+        "order": 7,
+        "tool": "get_institution_detail",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 3
+      },
+      {
+        "event_id": 521,
+        "stage": "execute_tools",
+        "kind": "tool",
+        "order": 8,
+        "tool": "get_driving_route",
+        "cached": true,
+        "ok": true,
+        "error_code": null,
+        "error_message": null,
+        "duration_ms": null,
+        "attempt": 3
+      },
+      {
+        "event_id": 524,
+        "stage": "judge_constraints",
+        "kind": "candidate_selected",
+        "institution_id": "C2103515",
+        "name": "다낫는럭스타워약국",
+        "code": "selected",
+        "reason": "이동시간 상한 이내이며 운영 종료 전에 도착할 것으로 예상됩니다."
+      }
+    ],
+    "tool_call_count": 0,
+    "cache_hit_count": 8,
+    "failed_tool_count": 1,
+    "replan_count": 3,
+    "excluded_count": 3,
+    "selected": {
+      "institution_id": "C2103515",
+      "name": "다낫는럭스타워약국",
+      "code": "selected",
+      "reason": "이동시간 상한 이내이며 운영 종료 전에 도착할 것으로 예상됩니다."
+    },
+    "stop_reason": null,
+    "missing_settings": []
+  }
+}
