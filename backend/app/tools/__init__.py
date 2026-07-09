@@ -1,6 +1,15 @@
-"""External Tool contracts and registry."""
+"""External Tool contracts, handlers, and registry."""
 
-from .registry import TOOL_SPECS, catalog
+from .contracts import ToolError, ToolResult, ToolSpec
+from .registry import TOOL_SPECS, ToolRegistry, build_registry, catalog
 
-__all__ = ["TOOL_SPECS", "catalog"]
+__all__ = [
+    "TOOL_SPECS",
+    "ToolError",
+    "ToolRegistry",
+    "ToolResult",
+    "ToolSpec",
+    "build_registry",
+    "catalog",
+]
 
