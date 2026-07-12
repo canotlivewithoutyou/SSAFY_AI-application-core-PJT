@@ -9,7 +9,7 @@
 </p>
 
 > [!NOTE]
-> 2026년 11월 19일 기준 FastAPI 백엔드, SQLite 방문 계획·실행 로그, 외부 API Tool 4종, LangGraph 추천·재계획 흐름, 반응형 랜딩·검색·추천·방문 계획 화면까지 구현했습니다. 자동 테스트 **20건**과 Python 문법 검사를 통과했으며, OpenAI·카카오·국립중앙의료원 실제 키를 사용한 실호출 증빙은 별도 진행이 필요합니다.
+> 2026년 11월 19일 기준 FastAPI 백엔드, SQLite 방문 계획·실행 로그, 외부 API Tool 4종, LangGraph 추천·재계획 흐름, 반응형 랜딩·검색·추천·방문 계획 화면까지 구현했습니다. 자동 테스트 **48건**(11월 20일 이벤트 구조 보완 후 기준)과 Python 문법 검사를 통과했으며, OpenAI·카카오·국립중앙의료원 실제 키를 사용한 실호출 증빙은 별도 진행이 필요합니다.
 
 > [!IMPORTANT]
 > 공개 운영시간과 예상 이동시간을 바탕으로 한 방문 안내입니다. 실제 운영 및 접수 여부는 방문 전 기관에 확인해 주세요. 이 서비스는 전문가의 의료 상담을 대신하지 않습니다.
@@ -54,6 +54,7 @@ flowchart LR
 | 11월 18일 | FastAPI 학습 예제를 `examples/fastapi-basics/`로 분리하고 실제 서비스용 백엔드·SQLite·프론트엔드 기본 구조를 구축했습니다. 방문 가능 판정, 계획 CRUD, 실행 로그 API와 기본 테스트를 추가했습니다. |
 | 11월 19일 오전 | 브랜드 가이드·로고·UI 목업을 정리하고, 장소 검색·주변 기관 조회·기관 상세·자동차 길찾기 Tool 4종을 구현했습니다. LangGraph의 분석 → 계획 → Tool 실행 → 조건 판단 → 재계획/응답 흐름과 대화 Memory·결과 캐시를 연결했습니다. |
 | 11월 19일 오후 | 추천 결과에서 바로 저장할 수 있는 계획 초안과 단계별 실행 이벤트 로깅을 추가했습니다. FastAPI에서 프론트엔드를 함께 제공하고, 랜딩·대화형 검색·추천 결과·방문 계획 조회/상세/수정/삭제 UI를 브랜드 디자인에 맞춰 완성했습니다. |
+| 11월 20일 | 이벤트 발행과 Logging Agent를 in-process 발행·구독 구조로 분리했습니다. 요청별 `request_id`, 세션 실행 로그 상세 API를 추가하고, 화면의 진행 단계를 타이머 대신 실제로 기록된 이벤트로 표시하도록 바꿨습니다. |
 
 ### 현재 구현 상태
 
@@ -62,10 +63,10 @@ flowchart LR
 | 서버 상태 및 연동 설정 확인 | ✅ | DB 상태와 외부 서비스 키의 설정 여부만 공개 |
 | 도착 시각 기반 방문 가능 판정 | ✅ | 이동시간 상한, 마감 정각 제외, 자정을 넘는 운영 구간 처리 |
 | SQLite 방문 계획 관리 | ✅ | 생성·목록·상세·수정·삭제 및 같은 날짜의 시간 중복 경고 |
-| 실행 이벤트·로그 관리 | ✅ | 단계·Tool·판단·재계획 이벤트 저장, 세션별 조회·삭제, 비밀값 마스킹 |
+| 실행 이벤트·로그 관리 | ✅ | 이벤트 발행자와 Logging Agent 구독자 분리, 세션·요청별 실행 순서 조회, 삭제, 비밀값 마스킹 |
 | 외부 API Tool 4종 | ✅ | 장소 검색, 주변 기관, `hpid` 상세, 현재·미래 자동차 길찾기 |
 | LangGraph 추천 Agent | ✅ | 요청 분석, 조건 판정, 후보 재탐색, 상한 종료, Memory와 캐시 |
-| 반응형 웹 앱 | ✅ | 랜딩, 대화형 검색, 진행 단계, 추천 결과, 실행 흐름, 방문 계획 화면 |
+| 반응형 웹 앱 | ✅ | 랜딩, 대화형 검색, 실제 이벤트 기반 진행 단계, 추천 결과, 실행 흐름(Tool 실패·제외·재계획 위치), 방문 계획 화면 |
 | 추천 결과 저장·계획 관리 UI | ✅ | 결과 저장, 날짜별 목록, 상세, 출발 시각·기관명·근거 수정, 삭제 |
 | 카카오·의료기관 실호출 증빙 | ⏳ | 구현·모의 응답 검증 완료, 실제 키를 사용한 결과 기록 필요 |
 | OpenAI 응답·Tool 선택 실증 | ⏳ | Tool 등록·고정 테스트 완료, 실제 모델 호출 결과 기록 필요 |
@@ -115,15 +116,17 @@ flowchart LR
 ```text
 backend/
   app/
-    agents/          # LLM 분석, LangGraph 실행 흐름, 대화 Memory, 로깅 경계
+    agents/          # LLM 분석, LangGraph 실행 흐름, 대화 Memory, Logging Agent(구독자)
+    events.py        # 실행 이벤트 계약과 in-process 발행·구독 버스
+    composition.py   # 버스·Logging Agent·Planner 조립(발행자와 구독자를 함께 아는 유일한 곳)
     api/             # health, chat, plans, logs 라우터
     repositories/    # SQLite 방문 계획·실행 로그 접근
     schemas/         # 요청·응답 모델
-    services/        # 채팅 조정, 도착 시각·운영시간 판정
+    services/        # 채팅 조정, 도착 시각·운영시간 판정, 실행 trace 요약
     tools/           # 외부 Tool 계약, 핸들러, 등록부
   scripts/           # 실제 키 설정 후 실행하는 실연동 검증
   data/              # 로컬 SQLite 파일(버전 관리 제외)
-  tests/             # API, 판정, Agent, Tool, 저장소 테스트
+  tests/             # API, 판정, Agent, Tool, 저장소, 이벤트·로그, 프론트엔드 계약 테스트
 design/
   yeollyeo-doc/      # 디자인 가이드, 로고, 도키, 화면 목업
 examples/
@@ -206,11 +209,12 @@ python -m http.server 5500 --directory frontend
 | `GET` | `/api/v1/health` | DB와 외부 연동 설정 여부 확인 |
 | `GET` | `/api/v1/meta/tools` | Tool 계약과 구현 상태 확인 |
 | `GET` | `/api/v1/meta/graph` | LangGraph 노드와 조건 분기 확인 |
-| `POST` | `/api/v1/chat` | 사용법 안내 또는 추천 Agent 실행 |
+| `POST` | `/api/v1/chat` | 사용법 안내 또는 추천 Agent 실행. 응답의 `request_id`로 이번 실행 trace를 조회 |
 | `POST/GET` | `/api/v1/plans` | 방문 계획 저장·목록 조회 |
 | `GET/PATCH/DELETE` | `/api/v1/plans/{id}` | 방문 계획 상세·수정·삭제 |
-| `GET` | `/api/v1/logs` | 실행 로그 목록, `session_id` 필터 지원 |
-| `GET/DELETE` | `/api/v1/logs/{id}` | 실행 로그 상세·삭제 |
+| `GET` | `/api/v1/logs` | 실행 로그 목록. `session_id`·`request_id` 필터, `order=desc`(기본)/`asc` |
+| `GET` | `/api/v1/logs/sessions/{session_id}` | 세션 전체 로그를 실행 순서로 조회. `requests`·`latest_request_id` 제공, `?request_id=` 또는 `?latest=true`로 한 실행과 요약(`summary`) 조회 |
+| `GET/DELETE` | `/api/v1/logs/{id}` | 실행 로그 단건 상세·삭제 (수정 API 없음) |
 
 계획 시각은 ISO 8601 형식을 사용합니다. 시간대가 없는 값은 한국 표준시(`UTC+09:00`)로 해석하고, 다른 시간대가 있으면 한국 표준시로 정규화합니다.
 
@@ -237,7 +241,7 @@ python -m http.server 5500 --directory frontend
 .\.venv\Scripts\python.exe -m compileall -q backend
 ```
 
-2026년 11월 19일 기준 **20개 테스트가 통과**합니다. 테스트 범위는 다음과 같습니다.
+2026년 11월 20일 기준 **48개 테스트가 통과**합니다. 테스트 범위는 다음과 같습니다.
 
 - 마감 정각 제외, 이동시간 상한 포함, 자정을 넘는 운영 구간
 - Tool 정상·실패 형식, 키 누락, 운영시간 누락, `hpid → 상세` 연결
@@ -245,7 +249,12 @@ python -m http.server 5500 --directory frontend
 - 경로 실패 후 다음 후보 재계획, 재계획 상한
 - 후속 대화의 출발지 Memory와 결과 캐시 재사용
 - 방문 계획 CRUD와 시간 중복 경고
-- 실행 로그의 비밀값 마스킹과 API 계약
+- 실행 로그의 비밀값 마스킹(키 이름·키처럼 보이는 값)과 API 계약
+- 이벤트 구독자 0개·예외 구독자·저장 실패에서도 Planner 정상 응답, Planner의 로깅 구현 비참조
+- 단계 진입·종료 쌍, Tool 요청·응답과 소요시간, 규칙/LLM 판단 이유, 캐시 재사용 표시
+- 세션 로그 실행 순서, 세션 간 분리, 같은 세션의 요청별 `request_id` 구분, 기존 DB 마이그레이션
+- Tool 불필요 요청의 Tool 0회, Tool 실패 → 후보 제외 → 재계획 trace, 재계획 상한 trace
+- 프론트엔드가 타이머 없이 실행별 trace를 조회하는지 정적 계약 검사
 
 ## 실제 API 연동 검증
 
