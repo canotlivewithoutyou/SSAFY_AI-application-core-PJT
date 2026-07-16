@@ -1,7 +1,8 @@
-"""Temporary deterministic chat behavior used before the Agent is connected."""
+"""Conversation service that routes help locally and planning to LangGraph."""
 
 from __future__ import annotations
 
+from ..agents.planner import get_planner_agent
 from ..config import Settings
 from ..schemas.chat import ChatRequest, ChatResponse
 
@@ -25,14 +26,43 @@ def handle_chat(request: ChatRequest, settings: Settings) -> ChatResponse:
         )
 
     missing = settings.missing_integration_settings()
+    if missing:
+        return ChatResponse(
+            session_id=request.session_id,
+            status="setup_required",
+            answer=(
+                "추천 Agent 실행에 필요한 환경변수가 아직 설정되지 않았습니다. "
+                "키 값은 .env에만 넣고 서버를 다시 시작해 주세요."
+            ),
+            missing_settings=missing,
+            tool_calls=[],
+        )
+
+    try:
+        outcome = get_planner_agent(settings).run(
+            session_id=request.session_id,
+            message=request.message,
+        )
+    except Exception:
+        return ChatResponse(
+            session_id=request.session_id,
+            status="failed",
+            answer="요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+        )
+
+    if outcome.get("clarification"):
+        status = "needs_input"
+    elif outcome.get("selected_candidate"):
+        status = "completed"
+    else:
+        status = "failed"
     return ChatResponse(
         session_id=request.session_id,
-        status="setup_required",
-        answer=(
-            "프로젝트 기초 구조는 준비됐지만 추천 Agent와 외부 API는 아직 연결 전입니다. "
-            "환경변수와 실제 Tool 구현을 연결한 뒤 이 요청을 처리할 수 있습니다."
-        ),
-        missing_settings=missing,
-        tool_calls=[],
+        status=status,
+        answer=str(outcome.get("final_answer") or "응답을 생성하지 못했습니다."),
+        tool_calls=list(outcome.get("tool_calls") or []),
+        request_context=dict(outcome.get("parsed_request") or {}),
+        recommendation=dict(outcome.get("selected_candidate") or {}) or None,
+        excluded_candidates=list(outcome.get("exclusions") or []),
+        replan_count=int(outcome.get("replan_count") or 0),
     )
-

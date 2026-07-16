@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -15,8 +15,12 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     session_id: str
-    status: Literal["completed", "setup_required"]
+    status: Literal["completed", "needs_input", "setup_required", "failed"]
     answer: str
     missing_settings: list[str] = Field(default_factory=list)
     tool_calls: list[str] = Field(default_factory=list)
+    request_context: dict[str, Any] = Field(default_factory=dict)
+    recommendation: dict[str, Any] | None = None
+    excluded_candidates: list[dict[str, Any]] = Field(default_factory=list)
+    replan_count: int = 0
 
