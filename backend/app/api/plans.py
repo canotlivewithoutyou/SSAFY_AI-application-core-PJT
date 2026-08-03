@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from pydantic import ValidationError
 
 from ..config import Settings, settings_dependency
 from ..repositories import plans as repository
@@ -13,6 +14,16 @@ from ..schemas.plan import PlanCreate, PlanMutationResponse, PlanOut, PlanUpdate
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 NOT_FOUND = "방문 계획을 찾을 수 없습니다."
+
+
+def _validation_message(error: ValidationError) -> str:
+    """Turn a model validation error into a short, user-facing sentence."""
+
+    messages = [
+        str(item.get("msg", "")).removeprefix("Value error, ").strip()
+        for item in error.errors()
+    ]
+    return " ".join(message for message in messages if message) or "수정한 값이 올바르지 않습니다."
 
 
 def _mutation_result(settings: Settings, plan: PlanOut) -> PlanMutationResponse:
@@ -81,7 +92,12 @@ async def update_plan(
     if not requested_changes:
         raise HTTPException(status_code=400, detail="변경할 값을 한 개 이상 보내 주세요.")
 
-    validated = PlanCreate.model_validate({**current, **requested_changes})
+    try:
+        validated = PlanCreate.model_validate({**current, **requested_changes})
+    except ValidationError as error:
+        # The merged plan breaks a time rule (e.g. arrival after closing).
+        # This is the client's input problem, so answer 422 instead of 500.
+        raise HTTPException(status_code=422, detail=_validation_message(error)) from None
     normalized = validated.model_dump()
     changes = {field: normalized[field] for field in requested_changes}
     item = repository.update_plan(settings.database_path, plan_id, changes)
