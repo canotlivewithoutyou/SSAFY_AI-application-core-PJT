@@ -7,9 +7,11 @@ from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from backend.app.agents.logging_agent import subscribe_logging_agent
 from backend.app.agents.planner import PlannerAgent
 from backend.app.config import get_settings
 from backend.app.database import initialize_database
+from backend.app.events import EventBus
 from backend.app.repositories.logs import list_events
 from backend.app.services.chat import build_plan_draft
 from backend.app.tools.contracts import failure, success
@@ -122,11 +124,14 @@ class PlannerGraphTests(unittest.TestCase):
 
     def test_route_failure_replans_and_selects_next_candidate(self) -> None:
         registry = FakeRegistry()
+        bus = EventBus()
+        subscribe_logging_agent(bus, self.settings.database_path)
         agent = PlannerAgent(
             self.settings,
             registry=registry,
             analyzer=RuleAnalyzer(),
             now=lambda: self.now,
+            publisher=bus,
         )
         result = agent.run(
             session_id="replan-session",
@@ -149,6 +154,7 @@ class PlannerGraphTests(unittest.TestCase):
         events = list_events(self.settings.database_path, session_id="replan-session")
         entered = [event["stage"] for event in events if event["event_type"] == "stage.entered"]
         exited = [event["stage"] for event in events if event["event_type"] == "stage.exited"]
+        self.assertTrue(entered)
         self.assertCountEqual(entered, exited)
         self.assertTrue(all(event["duration_ms"] is not None for event in events if event["event_type"] == "stage.exited"))
 

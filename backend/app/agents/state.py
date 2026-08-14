@@ -19,6 +19,7 @@ class PlannerRequest(TypedDict, total=False):
 
 class PlannerState(TypedDict, total=False):
     session_id: str
+    request_id: str
     user_message: str
     parsed_request: PlannerRequest
     analysis_source: str

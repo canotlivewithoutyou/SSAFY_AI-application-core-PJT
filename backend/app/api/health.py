@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 from ..config import Settings, settings_dependency
 from ..database import is_database_ready
-from ..agents.planner import get_planner_agent
+from ..composition import get_planner_agent
 from ..tools import catalog
 
 

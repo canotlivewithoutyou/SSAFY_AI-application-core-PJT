@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from time import perf_counter
-
 from fastapi import APIRouter, Depends
 
-from ..agents.logging_agent import emit_safely
+from ..composition import get_event_bus, get_planner_agent
 from ..config import Settings, settings_dependency
 from ..schemas.chat import ChatRequest, ChatResponse
 from ..services.chat import handle_chat
@@ -20,22 +18,9 @@ async def chat(
     request: ChatRequest,
     settings: Settings = Depends(settings_dependency),
 ) -> ChatResponse:
-    emit_safely(
-        settings.database_path,
-        session_id=request.session_id,
-        event_type="request.received",
-        stage="chat",
-        payload={"message_length": len(request.message)},
+    return handle_chat(
+        request,
+        settings,
+        publisher=get_event_bus(settings),
+        planner_factory=get_planner_agent,
     )
-    started = perf_counter()
-    response = handle_chat(request, settings)
-    emit_safely(
-        settings.database_path,
-        session_id=request.session_id,
-        event_type="request.completed",
-        stage="chat",
-        payload={"status": response.status, "tool_calls": response.tool_calls},
-        duration_ms=int((perf_counter() - started) * 1000),
-    )
-    return response
-

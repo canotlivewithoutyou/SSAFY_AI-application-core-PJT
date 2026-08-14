@@ -17,6 +17,10 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     session_id: str
+    request_id: str | None = Field(
+        default=None,
+        description="이번 요청의 실행 ID. 실행 trace 조회에 사용합니다.",
+    )
     status: Literal["completed", "needs_input", "setup_required", "failed"]
     answer: str
     missing_settings: list[str] = Field(default_factory=list)

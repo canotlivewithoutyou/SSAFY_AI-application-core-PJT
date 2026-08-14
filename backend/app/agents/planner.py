@@ -5,18 +5,18 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from functools import lru_cache
 from time import perf_counter
+from uuid import uuid4
 from typing import Any, Callable, Mapping
 
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from ..config import Settings
+from ..events import EventBus, EventPublisher, EventType, ExecutionEvent
 from ..services.availability import OpeningInterval, evaluate_visit
 from ..tools import ToolRegistry, ToolResult, build_registry
 from .llm import Analyzer, OpenAIAnalyzer
-from .logging_agent import emit_safely
 from .parsing import SEOUL, extract_explicit_fields, normalize_llm_fields
 from .state import PlannerState
 
@@ -110,8 +110,12 @@ class PlannerAgent:
         analyzer: Analyzer | None = None,
         checkpointer: InMemorySaver | None = None,
         now: Any | None = None,
+        publisher: EventPublisher | None = None,
     ) -> None:
         self.settings = settings
+        # The planner only publishes. Without an injected publisher it uses a
+        # bus with no subscribers, so it never depends on a storage backend.
+        self.publisher: EventPublisher = publisher or EventBus()
         self.registry = registry or build_registry(settings)
         self.now = now or (lambda: datetime.now(SEOUL))
         self.analyzer = analyzer
@@ -159,14 +163,20 @@ class PlannerAgent:
         payload: Mapping[str, Any] | None = None,
         duration_ms: int | None = None,
     ) -> None:
-        emit_safely(
-            self.settings.database_path,
-            session_id=str(state.get("session_id") or "unknown"),
-            event_type=event_type,
-            stage=stage,
-            payload=payload,
-            duration_ms=duration_ms,
-        )
+        try:
+            self.publisher.publish(
+                ExecutionEvent.create(
+                    session_id=str(state.get("session_id") or "unknown"),
+                    request_id=state.get("request_id") or None,
+                    event_type=event_type,
+                    stage=stage,
+                    payload=payload,
+                    duration_ms=duration_ms,
+                )
+            )
+        except Exception:
+            # Observability must never change the planning outcome.
+            return
 
     def _stage_node(
         self,
@@ -177,14 +187,14 @@ class PlannerAgent:
 
         @wraps(handler)
         def wrapped(state: PlannerState) -> dict[str, Any]:
-            self._log(state, event_type="stage.entered", stage=stage)
+            self._log(state, event_type=EventType.STAGE_ENTERED, stage=stage)
             started = perf_counter()
             try:
                 update = handler(state)
             except Exception as error:
                 self._log(
                     state,
-                    event_type="stage.exited",
+                    event_type=EventType.STAGE_EXITED,
                     stage=stage,
                     payload={"status": "failed", "error_type": type(error).__name__},
                     duration_ms=int((perf_counter() - started) * 1000),
@@ -192,7 +202,7 @@ class PlannerAgent:
                 raise
             self._log(
                 state,
-                event_type="stage.exited",
+                event_type=EventType.STAGE_EXITED,
                 stage=stage,
                 payload={"status": "completed"},
                 duration_ms=int((perf_counter() - started) * 1000),
@@ -289,9 +299,14 @@ class PlannerAgent:
         }
         self._log(
             state,
-            event_type="llm.decision" if analysis_source.startswith("llm") else "analysis.completed",
+            event_type=(
+                EventType.LLM_DECISION
+                if analysis_source.startswith("llm")
+                else EventType.ANALYSIS_COMPLETED
+            ),
             stage="analyze_request",
             payload={
+                "decision_maker": "llm" if analysis_source.startswith("llm") else "rules",
                 "source": analysis_source,
                 "reason": analysis_reason,
                 "extracted_fields": sorted(merged),
@@ -320,7 +335,7 @@ class PlannerAgent:
             plan = list(dict.fromkeys(plan))
         self._log(
             state,
-            event_type="plan.created",
+            event_type=EventType.PLAN_CREATED,
             stage="build_plan",
             payload={"steps": plan, "missing_fields": missing},
         )
@@ -338,18 +353,27 @@ class PlannerAgent:
         if key in cache:
             self._log(
                 state,
-                event_type="tool.cache_hit",
+                event_type=EventType.TOOL_CACHE_HIT,
                 stage="execute_tools",
-                payload={"tool": name, "arguments": arguments},
+                payload={
+                    "tool": name,
+                    "arguments": arguments,
+                    "ok": bool(cache[key].get("ok")),
+                    "attempt": int(state.get("replan_count") or 0),
+                },
             )
             calls.append(f"{name}:cache")
             return ToolResult.from_dict(cache[key])
 
         self._log(
             state,
-            event_type="tool.requested",
+            event_type=EventType.TOOL_REQUESTED,
             stage="execute_tools",
-            payload={"tool": name, "arguments": arguments},
+            payload={
+                "tool": name,
+                "arguments": arguments,
+                "attempt": int(state.get("replan_count") or 0),
+            },
         )
         started = perf_counter()
         result = self.registry.invoke(name, arguments)
@@ -358,12 +382,15 @@ class PlannerAgent:
         calls.append(name)
         self._log(
             state,
-            event_type="tool.responded",
+            event_type=EventType.TOOL_RESPONDED,
             stage="execute_tools",
             payload={
                 "tool": name,
                 "ok": result.ok,
                 "error_code": result.error.code if result.error else None,
+                # Tool error messages are curated, upstream-free text.
+                "error_message": result.error.message if result.error else None,
+                "attempt": int(state.get("replan_count") or 0),
             },
             duration_ms=duration_ms,
         )
@@ -623,9 +650,15 @@ class PlannerAgent:
             }
             self._log(
                 state,
-                event_type="candidate.selected",
+                event_type=EventType.CANDIDATE_SELECTED,
                 stage="judge_constraints",
-                payload={"institution_id": institution_id, "code": code, "reason": reason},
+                payload={
+                    "institution_id": institution_id,
+                    "name": candidate.get("name"),
+                    "code": code,
+                    "reason": reason,
+                    "attempt": int(state.get("replan_count") or 0),
+                },
             )
             return {
                 "visited_institution_ids": visited,
@@ -659,9 +692,17 @@ class PlannerAgent:
                 stop_reason = "조회한 후보 중 조건을 충족하는 기관이 없습니다."
         self._log(
             state,
-            event_type="candidate.excluded",
+            event_type=EventType.CANDIDATE_EXCLUDED,
             stage="judge_constraints",
-            payload={"institution_id": institution_id, "code": code, "reason": reason},
+            payload={
+                "institution_id": institution_id,
+                "name": candidate.get("name"),
+                "code": code,
+                "reason": reason,
+                "attempt": int(state.get("replan_count") or 0),
+                "will_replan": needs_replan,
+                "stop_reason": stop_reason or None,
+            },
         )
         return {
             "visited_institution_ids": visited,
@@ -678,11 +719,12 @@ class PlannerAgent:
         count = int(state.get("replan_count") or 0) + 1
         self._log(
             state,
-            event_type="plan.replanned",
+            event_type=EventType.PLAN_REPLANNED,
             stage="replan",
             payload={
                 "replan_count": count,
                 "limit": self.settings.replan_limit,
+                "reason": (state.get("exclusions") or [{}])[-1].get("reason"),
                 "visited_institution_ids": state.get("visited_institution_ids") or [],
             },
         )
@@ -736,19 +778,30 @@ class PlannerAgent:
             answer = "\n".join(lines)
         self._log(
             state,
-            event_type="request.completed",
+            event_type=EventType.RESPONSE_GENERATED,
             stage="generate_response",
             payload={
                 "selected": bool(state.get("selected_candidate")),
                 "needs_input": bool(state.get("clarification")),
                 "replan_count": state.get("replan_count") or 0,
+                "stop_reason": state.get("stop_reason") or None,
             },
         )
         return {"final_answer": answer}
 
-    def run(self, *, session_id: str, message: str) -> PlannerState:
+    def run(
+        self,
+        *,
+        session_id: str,
+        message: str,
+        request_id: str | None = None,
+    ) -> PlannerState:
         return self.graph.invoke(
-            {"session_id": session_id, "user_message": message},
+            {
+                "session_id": session_id,
+                "request_id": request_id or uuid4().hex,
+                "user_message": message,
+            },
             config={
                 "configurable": {"thread_id": session_id},
                 "recursion_limit": max(30, self.settings.replan_limit * 5 + 15),
@@ -757,8 +810,3 @@ class PlannerAgent:
 
     def graph_mermaid(self) -> str:
         return self.graph.get_graph().draw_mermaid()
-
-
-@lru_cache(maxsize=4)
-def get_planner_agent(settings: Settings) -> PlannerAgent:
-    return PlannerAgent(settings)

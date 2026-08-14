@@ -41,6 +41,7 @@ ON visit_plans (visit_date, departure_at);
 CREATE TABLE IF NOT EXISTS execution_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id TEXT NOT NULL,
+    request_id TEXT,
     event_type TEXT NOT NULL,
     stage TEXT NOT NULL,
     payload_json TEXT NOT NULL DEFAULT '{}',
@@ -50,6 +51,15 @@ CREATE TABLE IF NOT EXISTS execution_logs (
 
 CREATE INDEX IF NOT EXISTS ix_execution_logs_session
 ON execution_logs (session_id, id);
+"""
+
+# Columns added after the first release. Each entry is applied only when the
+# existing table lacks it, so older local databases keep their rows.
+EXECUTION_LOG_MIGRATIONS = (("request_id", "ALTER TABLE execution_logs ADD COLUMN request_id TEXT"),)
+
+POST_MIGRATION_SCHEMA = """
+CREATE INDEX IF NOT EXISTS ix_execution_logs_request
+ON execution_logs (request_id, id);
 """
 
 
@@ -73,6 +83,18 @@ def initialize_database(database_path: Path) -> None:
     with connect(database_path) as connection:
         connection.execute("PRAGMA journal_mode = WAL")
         connection.executescript(SCHEMA)
+        _migrate_execution_logs(connection)
+        connection.executescript(POST_MIGRATION_SCHEMA)
+
+
+def _migrate_execution_logs(connection: sqlite3.Connection) -> None:
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(execution_logs)").fetchall()
+    }
+    for column, statement in EXECUTION_LOG_MIGRATIONS:
+        if column not in columns:
+            connection.execute(statement)
 
 
 def is_database_ready(database_path: Path) -> bool:

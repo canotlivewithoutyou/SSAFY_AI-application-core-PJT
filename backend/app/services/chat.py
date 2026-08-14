@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Mapping
+from time import perf_counter
+from typing import Any, Callable, Mapping
+from uuid import uuid4
 
 from pydantic import ValidationError
 
-from ..agents.planner import get_planner_agent
+from ..composition import get_planner_agent
 from ..config import Settings
+from ..events import EventBus, EventPublisher, EventType, ExecutionEvent
 from ..schemas.chat import ChatRequest, ChatResponse
 from ..schemas.plan import PlanCreate
 
@@ -75,7 +78,78 @@ def build_plan_draft(outcome: Mapping[str, Any]) -> PlanCreate | None:
         return None
 
 
-def handle_chat(request: ChatRequest, settings: Settings) -> ChatResponse:
+def _publish(
+    publisher: EventPublisher,
+    request: ChatRequest,
+    request_id: str,
+    event_type: str,
+    payload: Mapping[str, Any],
+    duration_ms: int | None = None,
+) -> None:
+    try:
+        publisher.publish(
+            ExecutionEvent.create(
+                session_id=request.session_id,
+                request_id=request_id,
+                event_type=event_type,
+                stage="chat",
+                payload=payload,
+                duration_ms=duration_ms,
+            )
+        )
+    except Exception:
+        return
+
+
+def handle_chat(
+    request: ChatRequest,
+    settings: Settings,
+    *,
+    publisher: EventPublisher | None = None,
+    planner_factory: Callable[[Settings], Any] | None = None,
+    request_id: str | None = None,
+) -> ChatResponse:
+    """Run one chat request and publish its start/finish events.
+
+    The response carries ``request_id`` so a client can fetch exactly this
+    run's trace from ``GET /logs/sessions/{session_id}?request_id=...``.
+    """
+
+    publisher = publisher or EventBus()
+    request_id = request_id or uuid4().hex
+    _publish(
+        publisher,
+        request,
+        request_id,
+        EventType.REQUEST_RECEIVED,
+        {"message_length": len(request.message)},
+    )
+    started = perf_counter()
+    response = _handle(request, settings, request_id, publisher, planner_factory)
+    response.request_id = request_id
+    _publish(
+        publisher,
+        request,
+        request_id,
+        EventType.REQUEST_COMPLETED,
+        {
+            "status": response.status,
+            "tool_calls": response.tool_calls,
+            "tool_call_count": len(response.tool_calls),
+            "replan_count": response.replan_count,
+        },
+        duration_ms=int((perf_counter() - started) * 1000),
+    )
+    return response
+
+
+def _handle(
+    request: ChatRequest,
+    settings: Settings,
+    request_id: str,
+    publisher: EventPublisher,
+    planner_factory: Callable[[Settings], Any] | None,
+) -> ChatResponse:
     normalized = request.message.casefold()
     if any(phrase in normalized for phrase in HELP_PHRASES):
         return ChatResponse(
@@ -87,6 +161,14 @@ def handle_chat(request: ChatRequest, settings: Settings) -> ChatResponse:
 
     missing = settings.missing_integration_settings()
     if missing:
+        # Only variable names are published; values are never read here.
+        _publish(
+            publisher,
+            request,
+            request_id,
+            EventType.SETUP_REQUIRED,
+            {"missing_settings": missing},
+        )
         return ChatResponse(
             session_id=request.session_id,
             status="setup_required",
@@ -98,10 +180,14 @@ def handle_chat(request: ChatRequest, settings: Settings) -> ChatResponse:
             tool_calls=[],
         )
 
+    if planner_factory is None:
+        planner_factory = get_planner_agent
+
     try:
-        outcome = get_planner_agent(settings).run(
+        outcome = planner_factory(settings).run(
             session_id=request.session_id,
             message=request.message,
+            request_id=request_id,
         )
     except Exception:
         return ChatResponse(
