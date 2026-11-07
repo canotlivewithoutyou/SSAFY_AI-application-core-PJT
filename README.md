@@ -1,14 +1,45 @@
-# 전국 야간·휴일 병원·약국 방문 플래너
+# 열려있DOC
 
-출발 시각과 실제 자동차 이동시간을 함께 계산해, **예상 도착 시각에도 공개 운영시간 안에 있는 병원·약국 후보**를 제안하는 프로젝트입니다. 전국 서비스가 목표이고 첫 검증 지역은 성남 판교입니다.
+> 가장 가까운 곳보다, **내가 도착할 때도 열려 있는 곳**을 찾습니다.
 
+**열려있DOC**은 야간이나 휴일에 이용할 수 있는 병원·약국을 찾는 방문 플래너입니다. 출발 시각과 실제 자동차 이동시간, 공개 운영시간을 함께 계산해 예상 도착 시각에도 운영 중인 후보를 안내합니다. 전국 서비스를 목표로 하며, 첫 검증 지역은 성남 판교입니다.
+
+```text
+사용자 요청
+  → 출발지 확인
+  → 주변 병원·약국과 운영시간 조회
+  → 자동차 이동시간 계산
+  → 도착 시각 기준 방문 가능 여부 판정
+  → 조건을 만족하는 후보 안내 및 방문 계획 저장
+```
+
+> [!NOTE]
+> 현재 저장소는 기반 MVP 단계입니다. FastAPI, SQLite, 방문 계획 CRUD, 판정 로직, 실행 로그, 기본 화면은 구현되어 있습니다. 추천 Agent와 카카오·국립중앙의료원 API의 실제 호출은 아직 연결 전이며, 추천 요청에 임의의 결과를 반환하지 않습니다.
+
+> [!IMPORTANT]
 > 공개 운영시간과 예상 이동시간을 바탕으로 한 방문 안내입니다. 실제 운영 및 접수 여부는 방문 전 기관에 확인해 주세요. 이 서비스는 전문가의 의료 상담을 대신하지 않습니다.
 
-## 폴더 구분
+## 서비스 원리
+
+지금 문을 연 가장 가까운 기관도 이동하는 동안 영업이 끝날 수 있습니다. 열려있DOC은 단순한 거리나 현재 영업 여부가 아니라 **도착 시점**을 기준으로 판단합니다.
+
+```text
+예상 도착 시각 = 출발 시각 + 자동차 예상 주행시간
+```
+
+다음 조건을 모두 만족한 후보만 방문 가능 대상으로 판단합니다.
+
+- 주행시간이 사용자가 정한 최대 이동시간 이내일 것
+- 방문일의 운영시간을 확인할 수 있을 것
+- `운영 시작 시각 ≤ 예상 도착 시각 < 운영 종료 시각`일 것
+
+마감 시각과 정확히 같은 시각에 도착하는 후보는 제외합니다. 경로 또는 운영시간을 확인할 수 없는 경우에도 값을 추측하지 않고 확인 불가 사유를 남깁니다.
+
+## 프로젝트 구조
 
 `examples/fastapi-basics/`의 `step1_hello.py`~`step5_crud.py`, `app/`, `index.html`, `tools_start.py`는 2026년 11월 18일 오전에 진행한 **FastAPI 학습 예제**입니다. 실제 프로젝트와 섞이지 않도록 한곳에 모았으며, 당시 수정 내용은 그대로 보존했습니다.
 
-실제 방문 플래너는 다음 폴더에서 개발합니다.
+열려있DOC의 실제 서비스 코드는 다음 폴더에서 개발합니다.
 
 ```text
 examples/
@@ -28,29 +59,60 @@ frontend/
   index.html
 ```
 
-## 오늘 준비된 범위
+## 주요 기능과 구현 상태
 
-- `backend/`와 `frontend/` 분리
-- `.env` 로컬 파일과 커밋 가능한 `.env.example`, 비밀값·DB·캐시용 `.gitignore`
-- FastAPI 앱, CORS, `/docs`, 상태 확인 API
-- SQLite 초기화와 방문 계획 생성·목록·상세·수정·삭제
-- 시간이 겹치는 방문 계획을 막지 않고 경고하는 저장 응답
-- 세션별 실행 로그 목록·상세·삭제 및 비밀값 키 자동 마스킹
-- `개점 ≤ 예상 도착 < 마감`, `주행시간 ≤ 상한` 시간 판정 함수
-- 장소 검색·주변 기관·기관 상세·자동차 길찾기 Tool 4종의 이름, 설명, 입력 계약
-- LangGraph에서 사용할 상태 구조와 로깅 Agent 경계
-- 대화/연동 상태/저장 계획을 보여 주는 반응형 프론트엔드 뼈대
-- 문서의 시간 경계값과 SQLite 저장소를 재현하는 표준 라이브러리 테스트
+| 기능 | 상태 | 설명 |
+|---|:---:|---|
+| 서버 상태 및 연동 설정 확인 | ✅ | DB와 외부 서비스 키의 설정 여부만 공개 |
+| 방문 가능 여부 판정 | ✅ | 이동시간 상한, 마감 경계, 자정을 넘는 운영 구간 처리 |
+| 방문 계획 관리 | ✅ | 생성·목록·상세·수정·삭제 및 시간 중복 경고 |
+| 실행 로그 관리 | ✅ | 세션별 조회·상세·삭제, 비밀값 형태의 필드 자동 마스킹 |
+| 반응형 웹 화면 | ✅ | 채팅 입력, 연동 상태, 저장된 방문 계획 조회·삭제 |
+| 외부 Tool 계약 | ✅ | 장소 검색, 주변 기관, 기관 상세, 자동차 길찾기 4종 정의 |
+| 카카오·의료기관 API 실연동 | 🚧 | 실제 Tool handler 구현 예정 |
+| LLM 추천 Agent와 자동 재탐색 | 🚧 | Tool 선택과 재계획 그래프 연결 예정 |
+| 추천 결과 저장 UI | 🚧 | Agent 연동 후 구현 예정 |
 
 LLM, 카카오, 국립중앙의료원 API의 **실제 호출 코드는 아직 연결하지 않았습니다.** `/api/v1/meta/tools`의 `implemented: false`가 현재 상태를 그대로 보여 줍니다. 추천 요청도 가짜 결과를 만들지 않고 `setup_required`로 응답합니다. 사용법 질문만 외부 Tool 호출 없이 답합니다.
 
+## 기술 스택
+
+| 영역 | 기술 |
+|---|---|
+| Backend | Python 3.12, FastAPI, Pydantic, Uvicorn |
+| Database | SQLite |
+| Frontend | HTML, CSS, Vanilla JavaScript |
+| Test | Python `unittest` |
+| External API | Kakao Local, Kakao Mobility, 국립중앙의료원·공공데이터포털 연동 예정 |
+| Agent | LLM·LangGraph 연동 예정 |
+
+## 사용 예시
+
+```text
+성남 판교역 신분당선에서 오늘 밤 9시에 출발해서
+차로 20분 안에 도착할 수 있는 약국을 찾아줘.
+```
+
+최종 Agent가 연결되면 기관명·주소, 예상 주행시간과 도착 시각, 방문일의 공개 운영시간, 후보 선택 근거를 함께 안내하는 것을 목표로 합니다. 조건을 만족하는 후보가 없으면 탐색 범위와 제외 사유를 설명합니다.
+
 ## 로컬 실행
 
-PowerShell에서 저장소 루트를 기준으로 실행합니다.
+Python 3.12 환경을 권장합니다. PowerShell에서 저장소 루트를 기준으로 실행합니다.
+
+### 1. 환경 준비
 
 ```powershell
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r backend\requirements.txt
+Copy-Item .env.example .env
+```
+
+`.env`가 이미 있다면 마지막 명령은 생략합니다. 현재 구현된 API와 화면은 외부 API 키 없이 실행할 수 있습니다.
+
+### 2. 백엔드 실행
+
+```powershell
 python -m uvicorn backend.app.main:app --reload
 ```
 
@@ -58,7 +120,11 @@ python -m uvicorn backend.app.main:app --reload
 - Swagger 문서: <http://localhost:8000/docs>
 - 상태 확인: <http://localhost:8000/api/v1/health>
 
-다른 터미널에서 프론트엔드를 띄웁니다.
+서버는 첫 실행 때 `backend/data/planner.db`를 만듭니다. 이 파일과 `.env`는 Git에 올라가지 않습니다.
+
+### 3. 프론트엔드 실행
+
+다른 PowerShell 창에서 실행합니다.
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
@@ -67,23 +133,22 @@ python -m http.server 5500 --directory frontend
 
 - 화면: <http://localhost:5500>
 
-서버는 첫 실행 때 `backend/data/planner.db`를 만듭니다. 이 파일과 `.env`는 Git에 올라가지 않습니다.
-
 ## 환경변수
 
-로컬 `.env` 파일은 빈 키를 포함한 상태로 준비되어 있습니다. 실제 값을 채우되, 키 값을 문서·화면·로그·커밋에 남기지 않습니다.
+`.env.example`을 복사해 만든 로컬 `.env`에 실제 값을 입력합니다. 키 값은 문서·화면·로그·커밋에 남기지 않습니다.
 
-| 변수 | 용도 |
-|---|---|
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | LLM 및 Tool 선택 |
-| `KAKAO_REST_API_KEY` | 카카오 로컬·모빌리티 |
-| `NMC_SERVICE_KEY` | 국립중앙의료원/공공데이터포털 |
-| `DATABASE_PATH` | SQLite 파일 경로 |
-| `CORS_ORIGINS` | 허용할 프론트엔드 주소(쉼표 구분) |
-| `REPLAN_LIMIT` | 후보 재탐색 상한. 현재 기본값은 5회 |
-| `UPSTREAM_TIMEOUT_SECONDS` | 외부 API 요청 제한시간 |
+| 변수 | 기본값 | 용도 |
+|---|---|---|
+| `APP_ENV` | `local` | 실행 환경 이름 |
+| `DATABASE_PATH` | `backend/data/planner.db` | SQLite 파일 경로 |
+| `CORS_ORIGINS` | 로컬 프론트 주소 | 허용할 Origin, 쉼표로 구분 |
+| `REPLAN_LIMIT` | `5` | 후보 재탐색 횟수 상한 |
+| `UPSTREAM_TIMEOUT_SECONDS` | `10` | 외부 API 요청 제한시간 |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | 비어 있음 | LLM과 사용할 모델 |
+| `KAKAO_REST_API_KEY` | 비어 있음 | 카카오 Local·Mobility API |
+| `NMC_SERVICE_KEY` | 비어 있음 | 국립중앙의료원·공공데이터포털 API |
 
-환경변수를 바꾼 뒤에는 개발 서버를 다시 시작합니다.
+환경변수를 바꾼 뒤에는 백엔드 서버를 다시 시작합니다. API는 키 원문을 반환하거나 로그에 기록하지 않고 설정 여부만 보여 줍니다.
 
 ## 현재 API
 
@@ -101,7 +166,7 @@ python -m http.server 5500 --directory frontend
 
 ## 테스트
 
-추가 패키지 없이 현재 가상환경에서 실행할 수 있습니다.
+의존성을 설치한 가상환경에서 실행합니다.
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s backend\tests -v
@@ -113,7 +178,9 @@ python -m http.server 5500 --directory frontend
 .\.venv\Scripts\python.exe -m compileall -q backend
 ```
 
-## 다음 구현 순서
+테스트는 도착 시각의 마감 경계, 이동시간 상한, 자정을 넘는 운영 구간, 경로·운영시간 누락, 방문 계획 CRUD와 중복 경고, 로그 비밀값 마스킹, API 계약을 검증합니다.
+
+## 로드맵
 
 1. 실제 API 문서의 요청·응답을 기준으로 Tool 4종 handler 구현
 2. 병원 1곳·공휴일 운영 기관 1곳 실호출 검증
@@ -124,7 +191,7 @@ python -m http.server 5500 --directory frontend
 
 버전이 문서에 명시되지 않은 LLM/Agent 패키지는 임의 버전으로 고정하지 않았습니다. 과제 명세에서 지정 버전을 확인한 뒤 `backend/requirements.txt`에 추가합니다.
 
-## 기준 문서
+## 참고 문서
 
 - [주제 정의서](./야간휴일_병원약국_방문플래너_주제정의서.md)
 - [1일 차 검증 기록](./전국_야간휴일_병원약국_방문플래너_1일차_검증기록.md)
