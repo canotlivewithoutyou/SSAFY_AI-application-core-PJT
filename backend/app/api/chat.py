@@ -1,8 +1,4 @@
-"""Conversation entry point.
-
-The deterministic help response works now. Recommendation requests explicitly
-report setup_required until the real Agent and Tool handlers are connected.
-"""
+"""Conversation entry point for deterministic help and the LangGraph planner."""
 
 from __future__ import annotations
 

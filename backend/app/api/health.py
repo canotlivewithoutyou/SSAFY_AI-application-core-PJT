@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 
 from ..config import Settings, settings_dependency
 from ..database import is_database_ready
+from ..agents.planner import get_planner_agent
 from ..tools import catalog
 
 
@@ -24,6 +25,15 @@ async def health(settings: Settings = Depends(settings_dependency)) -> dict:
 
 
 @router.get("/meta/tools")
-async def tool_catalog() -> dict:
-    return {"tools": catalog()}
+async def tool_catalog(
+    settings: Settings = Depends(settings_dependency),
+) -> dict:
+    return {"tools": catalog(settings)}
+
+
+@router.get("/meta/graph")
+async def graph_structure(
+    settings: Settings = Depends(settings_dependency),
+) -> dict[str, str]:
+    return {"format": "mermaid", "graph": get_planner_agent(settings).graph_mermaid()}
 

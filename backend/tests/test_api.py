@@ -50,6 +50,7 @@ class APIContractTests(unittest.TestCase):
             {
                 "/api/v1/health",
                 "/api/v1/meta/tools",
+                "/api/v1/meta/graph",
                 "/api/v1/chat",
                 "/api/v1/plans",
                 "/api/v1/plans/{plan_id}",
@@ -61,9 +62,12 @@ class APIContractTests(unittest.TestCase):
         health = complete_without_await(health_api.health(self.settings))
         self.assertEqual(health["database"], "ready")
 
-        tools = complete_without_await(health_api.tool_catalog())
+        tools = complete_without_await(health_api.tool_catalog(self.settings))
         self.assertEqual(len(tools["tools"]), 4)
-        self.assertFalse(any(tool["implemented"] for tool in tools["tools"]))
+        self.assertTrue(all(tool["implemented"] for tool in tools["tools"]))
+
+        graph = complete_without_await(health_api.graph_structure(self.settings))
+        self.assertIn("analyze_request", graph["graph"])
 
         chat = complete_without_await(
             chat_api.chat(
