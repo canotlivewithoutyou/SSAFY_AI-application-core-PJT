@@ -15,3 +15,11 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
+class PlanIn(BaseModel):
+    movie_nm: str
+    watch_date: date #2026-11-18 날짜 형식만 통과, 내일, 모레
+    start_time: str | None=None
+
+@app.post("/plan")
+def create_plan(plan: PlanIn):
+    return {"saved": plan.model_dump()}

@@ -33,13 +33,21 @@ def list_plans():
 
 @app.get("/plans/{plan_id}", response_model=PlanOut)
 def get_plan(plan_id: int):
-    pass
+    if plan_id not in PLANS:
+        raise HTTPException(status_code=404, detail=NOT_FOUND)
+    return PLANS[plan_id]
+
 
 @app.put("/plans/{plan_id}", response_model=PlanOut)
 def update_plan(plan_id: int, plan: PlanIn):      # 경로 + 본문
-    pass
+    if plan_id not in PLANS:
+        raise HTTPException(status_code=404, detail=NOT_FOUND)
+    PLANS[plan_id].update(plan.model_dump())
+    return PLANS[plan_id]
 
 @app.delete("/plans/{plan_id}", status_code=204)  # 돌려줄 내용 없음
 def delete_plan(plan_id: int):
-    pass
+    if PLANS.pop(plan_id, None) is None:
+        raise HTTPException(status_code=404, detail=NOT_FOUND)
+    
 
