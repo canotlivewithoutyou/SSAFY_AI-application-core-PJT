@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="출발 시각과 실제 차량 이동시간을 고려하는 야간·휴일 병원·약국 방문 플래너"
+    />
+    <title>야간·휴일 방문 플래너</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="처음으로">
+        <span class="brand-mark" aria-hidden="true">+</span>
+        <span>
+          <strong>야간·휴일 방문 플래너</strong>
+          <small>병원과 약국, 도착할 때도 운영하는 곳으로</small>
+        </span>
+      </a>
+      <div id="api-status" class="status status-loading" role="status">
+        서버 확인 중
+      </div>
+    </header>
+
+    <main id="top" class="page-shell">
+      <section class="hero" aria-labelledby="hero-title">
+        <p class="eyebrow">NIGHT &amp; HOLIDAY VISIT PLANNER</p>
+        <h1 id="hero-title">문을 닫기 전에<br />도착할 수 있는 곳을 찾아요.</h1>
+        <p>
+          출발지와 시각, 병원·약국 종류, 허용 이동시간을 알려 주세요.
+          운영시간과 자동차 경로를 함께 확인하도록 설계했습니다.
+        </p>
+      </section>
+
+      <div class="workspace-grid">
+        <section class="panel chat-panel" aria-labelledby="chat-title">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">대화</p>
+              <h2 id="chat-title">방문 조건 입력</h2>
+            </div>
+            <span class="setup-badge">기초 세팅</span>
+          </div>
+
+          <div id="messages" class="messages" aria-live="polite">
+            <div class="message assistant-message">
+              <span class="message-label">플래너</span>
+              <p>
+                예: “성남 판교역 신분당선에서 오늘 밤 9시에 출발해 차로
+                20분 안에 갈 약국 찾아줘.”
+              </p>
+            </div>
+          </div>
+
+          <form id="chat-form" class="chat-form">
+            <label for="message">요청</label>
+            <div class="input-row">
+              <textarea
+                id="message"
+                name="message"
+                rows="3"
+                maxlength="4000"
+                required
+                placeholder="출발지, 출발 시각, 기관 종류, 이동시간을 입력하세요"
+              ></textarea>
+              <button id="send-button" type="submit">보내기</button>
+            </div>
+          </form>
+        </section>
+
+        <aside class="panel setup-panel" aria-labelledby="setup-title">
+          <p class="section-kicker">연결 상태</p>
+          <h2 id="setup-title">오늘의 준비 현황</h2>
+          <ul id="integration-list" class="check-list">
+            <li><span class="check pending">·</span> 서버 정보를 기다리는 중</li>
+          </ul>
+          <p class="setup-note">
+            키 값은 화면이나 로그에 표시하지 않고, 설정 여부만 보여 줍니다.
+          </p>
+          <a class="text-link" href="http://localhost:8000/docs" target="_blank" rel="noreferrer">
+            API 문서 열기 <span aria-hidden="true">↗</span>
+          </a>
+        </aside>
+      </div>
+
+      <section class="panel plans-panel" aria-labelledby="plans-title">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">저장</p>
+            <h2 id="plans-title">방문 계획</h2>
+          </div>
+          <button id="refresh-plans" class="secondary-button" type="button">새로고침</button>
+        </div>
+        <div id="plans" class="plans-empty">저장된 방문 계획이 없습니다.</div>
+      </section>
+
+      <p class="disclaimer">
+        공개 운영시간과 예상 이동시간을 바탕으로 한 방문 안내입니다. 실제 운영 및
+        접수 여부는 방문 전 기관에 확인해 주세요. 이 서비스는 전문가의 의료 상담을
+        대신하지 않습니다.
+      </p>
+    </main>
+
+    <script src="./assets/config.js"></script>
+    <script src="./assets/app.js" defer></script>
+  </body>
+</html>
+
